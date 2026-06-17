@@ -1,0 +1,138 @@
+from fastapi import FastAPI, HTTPException, Depends
+from sqlalchemy.orm import Session
+from database import engine, get_db
+from models import Base, Payment, PaymentMethod, Refund, Transaction
+from pydantic import BaseModel
+from datetime import datetime
+from kafka_producer import send_payment_completed, send_payment_failed, send_payment_refunded
+
+# Kreira tabele u bazi podataka ako ne postoje
+Base.metadata.create_all(bind=engine)
+
+app = FastAPI(title="Payment Service")
+
+# Pydantic šeme za validaciju ulaznih podataka
+class PaymentCreate(BaseModel):
+    reservation_id: int
+    payment_method_id: int
+    amount: float
+    user_email: str
+
+class RefundCreate(BaseModel):
+    payment_id: int
+    amount: float
+    user_email: str
+
+# Payment endpointi
+@app.get("/")
+def root():
+    return {"message": "Payment Service is running"}
+
+@app.get("/payments")
+def get_all_payments(db: Session = Depends(get_db)):
+    return db.query(Payment).all()
+
+@app.get("/payments/{payment_id}")
+def get_payment(payment_id: int, db: Session = Depends(get_db)):
+    payment = db.query(Payment).filter(Payment.id == payment_id).first()
+    if not payment:
+        raise HTTPException(status_code=404, detail="Payment not found")
+    return payment
+
+@app.post("/payments")
+def create_payment(payment_data: PaymentCreate, db: Session = Depends(get_db)):
+    payment = Payment(
+        reservation_id=payment_data.reservation_id,
+        payment_method_id=payment_data.payment_method_id,
+        amount=payment_data.amount,
+        status="pending"
+    )
+    db.add(payment)
+    db.commit()
+    db.refresh(payment)
+
+    try:
+        # Kreiranje transakcije
+        transaction = Transaction(
+            payment_id=payment.id,
+            amount=payment_data.amount,
+            status="pending",
+        )
+        db.add(transaction)
+        db.commit()
+        db.refresh(transaction)
+
+        # Simulacija uspješnog plaćanja
+        payment.status = "paid"
+        payment.paid_at = datetime.utcnow()
+        transaction.status = "success"
+        transaction.processed_at = datetime.utcnow()
+        db.commit()
+
+        # Šalji payment.completed event na Kafka
+        send_payment_completed(payment, payment_data.user_email)
+
+    except Exception as e:
+        # Ako plaćanje nije uspjelo
+        payment.status = "not_paid"
+        transaction.status = "failed"
+        transaction.processed_at = datetime.utcnow()
+        db.commit()
+
+        # Šalji payment.failed event na Kafka
+        send_payment_failed(payment, payment_data.user_email, str(e))
+
+        raise HTTPException(status_code=500, detail=str(e))
+
+    return payment
+
+# Refund endpointi
+@app.get("/refunds")
+def get_all_refunds(db: Session = Depends(get_db)):
+    return db.query(Refund).all()
+
+@app.post("/refunds")
+def create_refund(refund_data: RefundCreate, db: Session = Depends(get_db)):
+    payment = db.query(Payment).filter(Payment.id == refund_data.payment_id).first()
+    if not payment:
+        raise HTTPException(status_code=404, detail="Payment not found")
+    if payment.status != "paid":
+        raise HTTPException(status_code=400, detail="Payment is not paid")
+
+    refund = Refund(
+        payment_id=refund_data.payment_id,
+        amount=refund_data.amount,
+        status="pending"
+    )
+    db.add(refund)
+
+    try:
+        # Simulacija obrade refunda
+        refund.status = "success"
+        refund.refunded_at = datetime.utcnow()
+        payment.status = "refunded"
+        db.commit()
+        db.refresh(refund)
+
+        # Šalji payment.refunded event na Kafka
+        send_payment_refunded(refund, refund_data.user_email)
+
+    except Exception as e:
+        # Ako refundacija nije uspjela
+        refund.status = "failed"
+        db.commit()
+        raise HTTPException(status_code=500, detail=str(e))
+
+    return refund
+
+# Transaction endpointi
+@app.get("/transactions")
+def get_all_transactions(db: Session = Depends(get_db)):
+    return db.query(Transaction).all()
+
+@app.get("/transactions/{transaction_id}")
+def get_transaction(transaction_id: int, db: Session = Depends(get_db)):
+    transaction = db.query(Transaction).filter(Transaction.id == transaction_id).first()
+    if not transaction:
+        raise HTTPException(status_code=404, detail="Transaction not found")
+    return transaction
