@@ -6,6 +6,17 @@ from app.routes import tickets
 from app.kafka_consumer import consume_payment_events
 from app.reservation_cleanup import start_reservation_cleanup_worker
 import threading
+from app.exceptions import (
+    TicketNotFoundException,
+    SeatNotAvailableException,
+    ticket_not_found_handler,
+    seat_not_available_handler,
+    validation_exception_handler
+)
+
+from fastapi.exceptions import RequestValidationError
+
+
 
 Base.metadata.create_all(bind=engine)
 
@@ -42,3 +53,18 @@ def startup_event():
     daemon=True
     )
     cleanup_thread.start()
+
+app.add_exception_handler(
+    TicketNotFoundException,
+    ticket_not_found_handler
+)
+
+app.add_exception_handler(
+    SeatNotAvailableException,
+    seat_not_available_handler
+)
+
+app.add_exception_handler(
+    RequestValidationError,
+    validation_exception_handler
+)

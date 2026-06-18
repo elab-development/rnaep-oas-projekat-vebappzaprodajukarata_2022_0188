@@ -5,6 +5,8 @@ from datetime import datetime
 from app.database import get_db
 from app.models import Ticket, Seat, Reservation, Order
 from app.schemas import ReservationCreate
+from app.exceptions import SeatNotAvailableException
+from app.exceptions import TicketNotFoundException
 
 router = APIRouter(prefix="/tickets", tags=["Tickets"])
 
@@ -19,7 +21,7 @@ def get_ticket(ticket_id: int, db: Session = Depends(get_db)):
     ticket = db.query(Ticket).filter(Ticket.id == ticket_id).first()
 
     if not ticket:
-        raise HTTPException(status_code=404, detail="Ticket not found")
+        raise TicketNotFoundException()
 
     return ticket
 
@@ -35,7 +37,7 @@ def reserve_ticket(reservation_data: ReservationCreate, db: Session = Depends(ge
         )
 
         if not ticket:
-            raise HTTPException(status_code=404, detail="Ticket not found")
+            raise TicketNotFoundException()
 
         if ticket.status != "available":
             raise HTTPException(status_code=400, detail="Ticket is not available")
@@ -51,7 +53,7 @@ def reserve_ticket(reservation_data: ReservationCreate, db: Session = Depends(ge
             raise HTTPException(status_code=404, detail="Seat not found")
 
         if seat.status != "available":
-            raise HTTPException(status_code=400, detail="Seat is not available")
+            raise SeatNotAvailableException()
 
         ticket.status = "reserved"
         seat.status = "reserved"
