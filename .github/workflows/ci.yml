@@ -1,0 +1,43 @@
+name: CI/CD - User Service
+
+# Okida se na svaki push i pull request
+on:
+  push:
+  pull_request:
+
+jobs:
+  # POSAO 1: pokreni testove
+  test:
+    name: Testovi
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: user-service-py
+    steps:
+      - name: Preuzmi kod
+        uses: actions/checkout@v4
+
+      - name: Postavi Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Instaliraj zavisnosti
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Pokreni testove (pytest)
+        run: pytest
+
+  # POSAO 2: napravi Docker image (samo ako testovi prođu)
+  build:
+    name: Build Docker image
+    runs-on: ubuntu-latest
+    needs: test
+    steps:
+      - name: Preuzmi kod
+        uses: actions/checkout@v4
+
+      - name: Napravi Docker image
+        run: docker build -t user-service:latest ./user-service-py

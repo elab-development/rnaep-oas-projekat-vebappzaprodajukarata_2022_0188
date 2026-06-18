@@ -3,7 +3,8 @@ Pydantic šeme - definišu oblik podataka koji ulaze i izlaze iz API-ja.
 """
 from datetime import datetime
 
-from pydantic import BaseModel, EmailStr, Field, ConfigDict
+import html
+from pydantic import BaseModel, EmailStr, Field, ConfigDict, field_validator
 
 
 # ---------- Korisnik ----------
@@ -17,6 +18,12 @@ class UserRegister(UserBase):
     password: str = Field(min_length=8)
     password_confirmation: str
 
+    @field_validator("name")
+    @classmethod
+    def sanitize_name(cls, v: str) -> str:
+        # XSS zaštita: enkoduj HTML/skript karaktere da se ne mogu izvršiti
+        return html.escape(v)
+
 
 class UserLogin(BaseModel):
     email: EmailStr
@@ -28,6 +35,11 @@ class UserUpdate(BaseModel):
     email: EmailStr | None = None
     password: str | None = Field(default=None, min_length=8)
 
+    @field_validator("name")
+    @classmethod
+    def sanitize_name(cls, v):
+        # XSS zaštita: enkoduj HTML karaktere (preskoči ako ime nije poslato)
+        return html.escape(v) if v is not None else v
 
 class UserOut(UserBase):
     model_config = ConfigDict(from_attributes=True)

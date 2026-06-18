@@ -45,8 +45,15 @@ def statistics(
 def get_one(
     user_id: int,
     db: Session = Depends(get_db),
-    _: User = Depends(get_current_user),  # svaki prijavljen može videti profil
+    current_user: User = Depends(get_current_user),
 ):
+    # IDOR zaštita: običan korisnik sme da vidi samo SVOJ profil; admin sme sve
+    if current_user.id != user_id and not current_user.has_role("admin"):
+        raise HTTPException(
+            status_code=403,
+            detail="Nemate dozvolu da pristupite ovom korisniku.",
+        )
+
     user = crud.get_user_by_id(db, user_id)
     if not user:
         raise HTTPException(status_code=404, detail="Korisnik nije pronađen.")
