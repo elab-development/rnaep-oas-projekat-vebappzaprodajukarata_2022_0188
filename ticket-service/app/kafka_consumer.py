@@ -6,14 +6,15 @@ from app.database import SessionLocal
 from app.models import Reservation, Order, Ticket, Seat
 
 
-consumer = KafkaConsumer(
-    "payment.completed",
-    "payment.failed",
-    bootstrap_servers="localhost:9092",
-    value_deserializer=lambda m: json.loads(m.decode("utf-8")),
-    auto_offset_reset="earliest",
-    group_id="ticket-service-group"
-)
+def create_consumer():
+    return KafkaConsumer(
+        "payment.completed",
+        "payment.failed",
+        bootstrap_servers="localhost:9092",
+        value_deserializer=lambda m: json.loads(m.decode("utf-8")),
+        auto_offset_reset="earliest",
+        group_id="ticket-service-group"
+    )
 
 
 def handle_payment_completed(data):
@@ -79,6 +80,8 @@ def handle_payment_failed(data):
 
 def consume_payment_events():
     print("Ticket Service Kafka consumer started...")
+
+    consumer = create_consumer()
 
     for message in consumer:
         topic = message.topic
