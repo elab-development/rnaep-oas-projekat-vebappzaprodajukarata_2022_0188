@@ -13,3 +13,8 @@ def test_root_endpoint():
 def test_get_all_tickets():
     response = client.get("/tickets/")
     assert response.status_code == 200
+
+def test_ticket_not_found():
+    response = client.get("/tickets/999999")
+
+    assert response.status_code == 404

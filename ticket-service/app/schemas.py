@@ -38,8 +38,6 @@ class TicketResponse(BaseModel):
 
 class ReservationCreate(BaseModel):
     ticket_id: int
-    user_id: int
-
 
 class ReservationResponse(BaseModel):
     id: int

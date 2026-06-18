@@ -1,7 +1,7 @@
 from kafka import KafkaConsumer
 import json
 from datetime import datetime
-
+import os
 from app.database import SessionLocal
 from app.models import Reservation, Order, Ticket, Seat
 
@@ -10,7 +10,10 @@ def create_consumer():
     return KafkaConsumer(
         "payment.completed",
         "payment.failed",
-        bootstrap_servers="localhost:9092",
+        bootstrap_servers=os.getenv(
+        "KAFKA_BOOTSTRAP_SERVERS",
+        "localhost:9092"
+        ),
         value_deserializer=lambda m: json.loads(m.decode("utf-8")),
         auto_offset_reset="earliest",
         group_id="ticket-service-group"

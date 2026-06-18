@@ -68,3 +68,10 @@ app.add_exception_handler(
     RequestValidationError,
     validation_exception_handler
 )
+
+@app.get("/health")
+def health_check():
+    return {
+        "status": "UP",
+        "service": "ticket-service"
+    }

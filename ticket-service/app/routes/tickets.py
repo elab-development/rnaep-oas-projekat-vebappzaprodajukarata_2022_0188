@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from datetime import datetime
-
+from app.security import get_current_user_id
 from app.database import get_db
 from app.models import Ticket, Seat, Reservation, Order
 from app.schemas import ReservationCreate
@@ -27,7 +27,8 @@ def get_ticket(ticket_id: int, db: Session = Depends(get_db)):
 
 
 @router.post("/reserve")
-def reserve_ticket(reservation_data: ReservationCreate, db: Session = Depends(get_db)):
+def reserve_ticket(
+    reservation_data: ReservationCreate, current_user_id: int = Depends(get_current_user_id), db: Session = Depends(get_db) ):
     try:
         ticket = (
             db.query(Ticket)
@@ -60,7 +61,7 @@ def reserve_ticket(reservation_data: ReservationCreate, db: Session = Depends(ge
 
         reservation = Reservation(
             ticket_id=ticket.id,
-            user_id=reservation_data.user_id,
+            user_id=current_user_id,
             status="active"
         )
 
@@ -69,7 +70,7 @@ def reserve_ticket(reservation_data: ReservationCreate, db: Session = Depends(ge
 
         order = Order(
             reservation_id=reservation.id,
-            user_id=reservation_data.user_id,
+            user_id=current_user_id,
             total_amount=ticket.price,
             status="pending_payment"
         )
