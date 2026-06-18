@@ -30,14 +30,23 @@ jobs:
       - name: Pokreni testove (pytest)
         run: pytest
 
-  # POSAO 2: napravi Docker image (samo ako testovi prođu)
+ # POSAO 2: napravi Docker image i objavi ga na registar (CD)
   build:
-    name: Build Docker image
+    name: Build i objavi Docker image
     runs-on: ubuntu-latest
     needs: test
+    permissions:
+      contents: read
+      packages: write          # dozvola da workflow objavi image na registar
     steps:
       - name: Preuzmi kod
         uses: actions/checkout@v4
 
-      - name: Napravi Docker image
-        run: docker build -t user-service:latest ./user-service-py
+      - name: Prijava na GitHub Container Registry
+        run: echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
+
+      - name: Build i objavi Docker image
+        run: |
+          IMAGE=ghcr.io/${{ github.repository_owner }}/user-service:latest
+          docker build -t "$IMAGE" ./user-service-py
+          docker push "$IMAGE"
