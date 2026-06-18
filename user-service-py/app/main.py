@@ -10,8 +10,6 @@ from fastapi.middleware.cors import CORSMiddleware
 from app.database import Base, engine
 from app.routers import auth, users
 
-# Kreiraj tabele ako ne postoje (za jednostavno pokretanje)
-Base.metadata.create_all(bind=engine)
 
 app = FastAPI(
     title="User Microservice",
