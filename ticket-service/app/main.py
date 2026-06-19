@@ -6,6 +6,7 @@ from app.routes import tickets
 from app.kafka_consumer import consume_payment_events
 from app.reservation_cleanup import start_reservation_cleanup_worker
 import threading
+import os
 from app.exceptions import (
     TicketNotFoundException,
     SeatNotAvailableException,
@@ -16,9 +17,6 @@ from app.exceptions import (
 
 from fastapi.exceptions import RequestValidationError
 
-
-
-Base.metadata.create_all(bind=engine)
 
 app = FastAPI(title="Ticket Service")
 
@@ -43,14 +41,20 @@ def root():
 
 @app.on_event("startup")
 def startup_event():
+    if os.getenv("TESTING") == "true":
+        return
+
+    Base.metadata.create_all(bind=engine)
+
     consumer_thread = threading.Thread(
         target=consume_payment_events,
         daemon=True
     )
     consumer_thread.start()
+
     cleanup_thread = threading.Thread(
-    target=start_reservation_cleanup_worker,
-    daemon=True
+        target=start_reservation_cleanup_worker,
+        daemon=True
     )
     cleanup_thread.start()
 
