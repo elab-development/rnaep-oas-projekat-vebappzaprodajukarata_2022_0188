@@ -1,3 +1,4 @@
+from security import get_current_user_id, get_current_user_role
 from contextlib import asynccontextmanager
 from fastapi import FastAPI, HTTPException, Depends
 from sqlalchemy.orm import Session
@@ -21,9 +22,14 @@ app = FastAPI(title="Payment Service", lifespan=lifespan)
 # Pydantic šeme za validaciju ulaznih podataka
 class PaymentCreate(BaseModel):
     reservation_id: int
+    user_id: int
     payment_method_id: int
     amount: float
     user_email: str
+    event_name: str
+    event_date: str
+    venue_name: str
+    venue_address: str
 
 class RefundCreate(BaseModel):
     payment_id: int
@@ -38,6 +44,7 @@ class PaymentResponse(BaseModel):
 
     id: int
     reservation_id: int
+    user_id: int
     payment_method_id: int
     amount: float
     status: str
@@ -74,16 +81,25 @@ def get_all_payments(db: Session = Depends(get_db)):
     return db.query(Payment).all()
 
 @app.get("/payments/{payment_id}", response_model=PaymentResponse)
-def get_payment(payment_id: int, db: Session = Depends(get_db)):
+def get_payment(
+    payment_id: int, 
+    db: Session = Depends(get_db),
+    current_user_id: int = Depends(get_current_user_id),
+    current_user_role: str = Depends(get_current_user_role)
+    ):
     payment = db.query(Payment).filter(Payment.id == payment_id).first()
     if not payment:
         raise HTTPException(status_code=404, detail="Payment not found")
+    # IDOR zaštita - korisnik može vidjeti samo svoje plaćanje, osim ako je admin
+    if current_user_role != "admin" and payment.user_id != current_user_id:
+        raise HTTPException(status_code=403, detail="Forbidden")
     return payment
 
 @app.post("/payments", response_model=PaymentResponse)
 def create_payment(payment_data: PaymentCreate, db: Session = Depends(get_db)):
     payment = Payment(
         reservation_id=payment_data.reservation_id,
+        user_id=payment_data.user_id,
         payment_method_id=payment_data.payment_method_id,
         amount=payment_data.amount,
         status="pending"
@@ -111,7 +127,14 @@ def create_payment(payment_data: PaymentCreate, db: Session = Depends(get_db)):
         db.commit()
 
         # Šalji payment.completed event na Kafka
-        send_payment_completed(payment, payment_data.user_email)
+        send_payment_completed(
+            payment, 
+            payment_data.user_email,
+            payment_data.event_name,
+            payment_data.event_date,
+            payment_data.venue_name,
+            payment_data.venue_address
+        )
 
     except Exception as e:
         # Ako plaćanje nije uspjelo

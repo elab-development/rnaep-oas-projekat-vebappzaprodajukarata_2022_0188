@@ -21,6 +21,7 @@ class Payment(Base):
 
     id = Column(Integer, primary_key=True, index=True)
     reservation_id = Column(Integer, nullable=False)
+    user_id = Column(Integer, nullable=False)
     payment_method_id = Column(Integer, ForeignKey('payment_method.id'))
     amount = Column(Float, nullable=False)
     status = Column(String(20), default='pending')  # pending, paid, not_paid, refunded

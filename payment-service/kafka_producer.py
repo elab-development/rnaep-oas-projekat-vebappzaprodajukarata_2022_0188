@@ -14,14 +14,18 @@ def get_producer():
         )
     return producer
 
-def send_payment_completed(payment, user_email):
+def send_payment_completed(payment, user_email, event_name, event_date, venue_name, venue_address):
 # Šaljemo poruku kada je plaćanje uspješno
 
     get_producer().send('payment.completed', {
         'order_id': payment.id,
         'reservation_id': payment.reservation_id,
         'payment_id': payment.id,
-        'user_email': user_email
+        'user_email': user_email,
+        'event_name': event_name,
+        'event_date': event_date,
+        'venue_name': venue_name,
+        'venue_address': venue_address
     })
     get_producer().flush()
 
