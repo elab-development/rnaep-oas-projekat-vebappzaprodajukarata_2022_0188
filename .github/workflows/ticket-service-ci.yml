@@ -33,4 +33,5 @@ jobs:
       - name: Run tests
         env:
           TESTING: "true"
+          DATABASE_URL: "sqlite:///./test_ticket_service.db"
         run: pytest
