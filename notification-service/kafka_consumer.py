@@ -35,7 +35,11 @@ def process_messages():
                 data['user_email'],
                 data['order_id'],
                 data['reservation_id'],
-                data['payment_id']
+                data['payment_id'],
+                data['event_name'],
+                data['event_date'],
+                data['venue_name'],
+                data['venue_address']
             )
             
             # Kreiramo email log u MongoDB
@@ -47,7 +51,11 @@ def process_messages():
                 'email_body': {
                     'order_id': data['order_id'],
                     'reservation_id': data['reservation_id'],
-                    'payment_id': data['payment_id']
+                    'payment_id': data['payment_id'],
+                    'event_name': data['event_name'],
+                    'event_date': data['event_date'],
+                    'venue_name': data['venue_name'],
+                    'venue_address': data['venue_address']
                 },
                 'status': 'sent',
                 'sent_at': datetime.now(UTC),

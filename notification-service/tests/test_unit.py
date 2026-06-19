@@ -22,12 +22,23 @@ def test_send_notification_sent_calls_producer(mock_get_producer):
 def test_send_ticket_email_calls_postmark(mock_client):
     from postmark_client import send_ticket_email
 
-    send_ticket_email("test@example.com", 1, 10, 100)
+    send_ticket_email(
+        "test@example.com",
+        1,
+        10,
+        100,
+        "Taylor Swift Concert",
+        "2026-06-15T20:00:00",
+        "Stark Arena",
+        "Beograd"
+    )
 
     mock_client.emails.send.assert_called_once()
     args, kwargs = mock_client.emails.send.call_args
     assert kwargs['To'] == "test@example.com"
-    assert "1" in kwargs['Subject']
+    assert "Taylor Swift Concert" in kwargs['Subject']
+    assert "Stark Arena" in kwargs['HtmlBody']
+    assert "Beograd" in kwargs['HtmlBody']
 
 
 @patch('postmark_client.client')
