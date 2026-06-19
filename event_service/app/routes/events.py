@@ -1,16 +1,17 @@
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from datetime import datetime
-
+from app.security import require_admin
 from app.database import get_db
 from app.models import Event, Venue, Category
 from app.schemas import EventCreate
+from app.exceptions import EventNotFoundException
 
 router = APIRouter(prefix="/events", tags=["Events"])
 
 
 @router.post("/")
-def create_event(event_data: EventCreate, db: Session = Depends(get_db)):
+def create_event(event_data: EventCreate,admin_role: str = Depends(require_admin), db: Session = Depends(get_db)):
     venue = db.query(Venue).filter(Venue.id == event_data.venue_id).first()
     if not venue:
         raise HTTPException(status_code=404, detail="Venue not found")
@@ -46,7 +47,7 @@ def get_event(event_id: int, db: Session = Depends(get_db)):
     event = db.query(Event).filter(Event.id == event_id).first()
 
     if not event:
-        raise HTTPException(status_code=404, detail="Event not found")
+        raise EventNotFoundException()
 
     return event
 
@@ -55,12 +56,13 @@ def get_event(event_id: int, db: Session = Depends(get_db)):
 def update_event(
     event_id: int,
     event_data: EventCreate,
+    admin_role: str = Depends(require_admin),
     db: Session = Depends(get_db)
 ):
     event = db.query(Event).filter(Event.id == event_id).first()
 
     if not event:
-        raise HTTPException(status_code=404, detail="Event not found")
+        raise EventNotFoundException()
 
     event.title = event_data.title
     event.description = event_data.description
@@ -77,11 +79,11 @@ def update_event(
 
 
 @router.delete("/{event_id}")
-def delete_event(event_id: int, db: Session = Depends(get_db)):
+def delete_event(event_id: int,admin_role: str = Depends(require_admin), db: Session = Depends(get_db)):
     event = db.query(Event).filter(Event.id == event_id).first()
 
     if not event:
-        raise HTTPException(status_code=404, detail="Event not found")
+        raise EventNotFoundException()
 
     db.delete(event)
     db.commit()
@@ -90,11 +92,11 @@ def delete_event(event_id: int, db: Session = Depends(get_db)):
 
 
 @router.patch("/{event_id}/cancel")
-def cancel_event(event_id: int, db: Session = Depends(get_db)):
+def cancel_event(event_id: int,admin_role: str = Depends(require_admin), db: Session = Depends(get_db)):
     event = db.query(Event).filter(Event.id == event_id).first()
 
     if not event:
-        raise HTTPException(status_code=404, detail="Event not found")
+        raise EventNotFoundException()
 
     event.status = "cancelled"
     event.updated_at = datetime.utcnow()

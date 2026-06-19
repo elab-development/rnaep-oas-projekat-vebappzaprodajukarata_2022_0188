@@ -1,15 +1,16 @@
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
-
+from app.security import require_admin
 from app.database import get_db
 from app.models import Venue
 from app.schemas import VenueCreate
+from app.exceptions import VenueNotFoundException
 
 router = APIRouter(prefix="/venues", tags=["Venues"])
 
 
 @router.post("/")
-def create_venue(venue_data: VenueCreate, db: Session = Depends(get_db)):
+def create_venue(venue_data: VenueCreate,admin_role: str = Depends(require_admin), db: Session = Depends(get_db)):
     venue = Venue(
         name=venue_data.name,
         address=venue_data.address,
@@ -34,7 +35,7 @@ def get_venue(venue_id: int, db: Session = Depends(get_db)):
     venue = db.query(Venue).filter(Venue.id == venue_id).first()
 
     if not venue:
-        raise HTTPException(status_code=404, detail="Venue not found")
+        raise VenueNotFoundException()
 
     return venue
 
@@ -43,12 +44,13 @@ def get_venue(venue_id: int, db: Session = Depends(get_db)):
 def update_venue(
     venue_id: int,
     venue_data: VenueCreate,
+    admin_role: str = Depends(require_admin),
     db: Session = Depends(get_db)
 ):
     venue = db.query(Venue).filter(Venue.id == venue_id).first()
 
     if not venue:
-        raise HTTPException(status_code=404, detail="Venue not found")
+        raise VenueNotFoundException()
 
     venue.name = venue_data.name
     venue.address = venue_data.address
@@ -62,11 +64,11 @@ def update_venue(
 
 
 @router.delete("/{venue_id}")
-def delete_venue(venue_id: int, db: Session = Depends(get_db)):
+def delete_venue(venue_id: int,admin_role: str = Depends(require_admin), db: Session = Depends(get_db)):
     venue = db.query(Venue).filter(Venue.id == venue_id).first()
 
     if not venue:
-        raise HTTPException(status_code=404, detail="Venue not found")
+        raise VenueNotFoundException()
 
     db.delete(venue)
     db.commit()

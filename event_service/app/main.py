@@ -6,10 +6,26 @@ from app.models import Base
 from app.routes.events import router as events_router
 from app.routes.venues import router as venues_router
 from app.routes.categories import router as categories_router
+from fastapi.exceptions import RequestValidationError
+
+from app.exceptions import (
+    EventNotFoundException,
+    VenueNotFoundException,
+    CategoryNotFoundException,
+    event_not_found_handler,
+    venue_not_found_handler,
+    category_not_found_handler,
+    validation_exception_handler
+)
 
 Base.metadata.create_all(bind=engine)
 
 app = FastAPI(title="Event Service")
+
+app.add_exception_handler(EventNotFoundException, event_not_found_handler)
+app.add_exception_handler(VenueNotFoundException, venue_not_found_handler)
+app.add_exception_handler(CategoryNotFoundException, category_not_found_handler)
+app.add_exception_handler(RequestValidationError, validation_exception_handler)
 
 app.add_middleware(
     CORSMiddleware,
