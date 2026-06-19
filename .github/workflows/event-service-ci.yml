@@ -3,11 +3,11 @@ name: Event Service CI
 on:
   push:
     paths:
-      - "event-service/**"
+      - "event_service/**"
       - ".github/workflows/event-service-ci.yml"
   pull_request:
     paths:
-      - "event-service/**"
+      - "event_service/**"
       - ".github/workflows/event-service-ci.yml"
 
 jobs:
@@ -16,7 +16,7 @@ jobs:
 
     defaults:
       run:
-        working-directory: event-service
+        working-directory: event_service
 
     steps:
       - name: Checkout repository
