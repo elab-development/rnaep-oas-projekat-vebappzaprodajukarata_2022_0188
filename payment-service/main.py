@@ -1,15 +1,22 @@
+from contextlib import asynccontextmanager
 from fastapi import FastAPI, HTTPException, Depends
 from sqlalchemy.orm import Session
 from database import engine, get_db
 from models import Base, Payment, PaymentMethod, Refund, Transaction
-from pydantic import BaseModel
-from datetime import datetime
+from pydantic import BaseModel, ConfigDict
+from datetime import datetime, UTC
+from typing import Optional
 from kafka_producer import send_payment_completed, send_payment_failed, send_payment_refunded
 
-# Kreira tabele u bazi podataka ako ne postoje
-Base.metadata.create_all(bind=engine)
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    # Kreira tabele u bazi podataka ako ne postoje
+    # Izvršava se prije yield (pri pokretanju servisa)
+    Base.metadata.create_all(bind=engine)
+    yield
+    # Ovde bi išlo gasenje resursa, ako bi nam trebalo (nakon yield)
 
-app = FastAPI(title="Payment Service")
+app = FastAPI(title="Payment Service", lifespan=lifespan)
 
 # Pydantic šeme za validaciju ulaznih podataka
 class PaymentCreate(BaseModel):
@@ -23,23 +30,57 @@ class RefundCreate(BaseModel):
     amount: float
     user_email: str
 
+# Pydantic šeme za serijalizaciju izlaznih podataka
+# Bez ovih modela, FastAPI ne zna automatski kako da pretvori
+# SQLAlchemy objekat u JSON odgovor
+class PaymentResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: int
+    reservation_id: int
+    payment_method_id: int
+    amount: float
+    status: str
+    created_at: datetime
+    paid_at: Optional[datetime] = None
+
+class RefundResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: int
+    payment_id: int
+    amount: float
+    status: str
+    refunded_at: Optional[datetime] = None
+
+
+class TransactionResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: int
+    payment_id: int
+    amount: float
+    status: str
+    processed_at: Optional[datetime] = None
+
+
 # Payment endpointi
 @app.get("/")
 def root():
     return {"message": "Payment Service is running"}
 
-@app.get("/payments")
+@app.get("/payments", response_model=list[PaymentResponse])
 def get_all_payments(db: Session = Depends(get_db)):
     return db.query(Payment).all()
 
-@app.get("/payments/{payment_id}")
+@app.get("/payments/{payment_id}", response_model=PaymentResponse)
 def get_payment(payment_id: int, db: Session = Depends(get_db)):
     payment = db.query(Payment).filter(Payment.id == payment_id).first()
     if not payment:
         raise HTTPException(status_code=404, detail="Payment not found")
     return payment
 
-@app.post("/payments")
+@app.post("/payments", response_model=PaymentResponse)
 def create_payment(payment_data: PaymentCreate, db: Session = Depends(get_db)):
     payment = Payment(
         reservation_id=payment_data.reservation_id,
@@ -64,9 +105,9 @@ def create_payment(payment_data: PaymentCreate, db: Session = Depends(get_db)):
 
         # Simulacija uspješnog plaćanja
         payment.status = "paid"
-        payment.paid_at = datetime.utcnow()
+        payment.paid_at = datetime.now(UTC)
         transaction.status = "success"
-        transaction.processed_at = datetime.utcnow()
+        transaction.processed_at = datetime.now(UTC)
         db.commit()
 
         # Šalji payment.completed event na Kafka
@@ -76,7 +117,7 @@ def create_payment(payment_data: PaymentCreate, db: Session = Depends(get_db)):
         # Ako plaćanje nije uspjelo
         payment.status = "not_paid"
         transaction.status = "failed"
-        transaction.processed_at = datetime.utcnow()
+        transaction.processed_at = datetime.now(UTC)
         db.commit()
 
         # Šalji payment.failed event na Kafka
@@ -87,11 +128,11 @@ def create_payment(payment_data: PaymentCreate, db: Session = Depends(get_db)):
     return payment
 
 # Refund endpointi
-@app.get("/refunds")
+@app.get("/refunds", response_model=list[RefundResponse])
 def get_all_refunds(db: Session = Depends(get_db)):
     return db.query(Refund).all()
 
-@app.post("/refunds")
+@app.post("/refunds", response_model=RefundResponse)
 def create_refund(refund_data: RefundCreate, db: Session = Depends(get_db)):
     payment = db.query(Payment).filter(Payment.id == refund_data.payment_id).first()
     if not payment:
@@ -109,7 +150,7 @@ def create_refund(refund_data: RefundCreate, db: Session = Depends(get_db)):
     try:
         # Simulacija obrade refunda
         refund.status = "success"
-        refund.refunded_at = datetime.utcnow()
+        refund.refunded_at = datetime.now(UTC)
         payment.status = "refunded"
         db.commit()
         db.refresh(refund)
@@ -126,11 +167,11 @@ def create_refund(refund_data: RefundCreate, db: Session = Depends(get_db)):
     return refund
 
 # Transaction endpointi
-@app.get("/transactions")
+@app.get("/transactions", response_model=list[TransactionResponse])
 def get_all_transactions(db: Session = Depends(get_db)):
     return db.query(Transaction).all()
 
-@app.get("/transactions/{transaction_id}")
+@app.get("/transactions/{transaction_id}", response_model=TransactionResponse)
 def get_transaction(transaction_id: int, db: Session = Depends(get_db)):
     transaction = db.query(Transaction).filter(Transaction.id == transaction_id).first()
     if not transaction:

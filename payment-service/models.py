@@ -1,9 +1,12 @@
 from sqlalchemy import Column, Integer, Float, String, DateTime, ForeignKey
 from sqlalchemy.orm import relationship
-from sqlalchemy.ext.declarative import declarative_base
-from datetime import datetime
+from sqlalchemy.orm import declarative_base
+from datetime import datetime, UTC
 
 Base = declarative_base()
+
+def utc_now():
+    return datetime.now(UTC)
 
 class PaymentMethod(Base):
     __tablename__ = 'payment_method'
@@ -21,7 +24,7 @@ class Payment(Base):
     payment_method_id = Column(Integer, ForeignKey('payment_method.id'))
     amount = Column(Float, nullable=False)
     status = Column(String(20), default='pending')  # pending, paid, not_paid, refunded
-    created_at = Column(DateTime, default=datetime.utcnow)
+    created_at = Column(DateTime, default=utc_now)
     paid_at = Column(DateTime, nullable=True)
 
     payment_method = relationship("PaymentMethod", back_populates="payment")
