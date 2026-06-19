@@ -46,6 +46,7 @@ def process_messages():
             email_logs.insert_one({
                 'notification_id': notification_id,
                 'order_id': data['order_id'],
+                'user_id': data['user_id'],
                 'user_email': data['user_email'],
                 'type': 'ticket',
                 'email_body': {
@@ -80,6 +81,7 @@ def process_messages():
             email_logs.insert_one({
                 'notification_id': notification_id,
                 'order_id': data['order_id'],
+                'user_id': data['user_id'],
                 'user_email': data['user_email'],
                 'type': 'error',
                 'email_body': {
@@ -110,6 +112,7 @@ def process_messages():
             email_logs.insert_one({
                 'notification_id': notification_id,
                 'order_id': data['payment_id'],
+                'user_id': data['user_id'],
                 'user_email': data['user_email'],
                 'type': 'refund',
                 'email_body': {

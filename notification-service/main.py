@@ -1,5 +1,6 @@
+from security import get_current_user_id, get_current_user_role
 from contextlib import asynccontextmanager
-from fastapi import FastAPI
+from fastapi import Depends, FastAPI
 from database import email_logs
 from kafka_consumer import process_messages
 import threading
@@ -19,7 +20,14 @@ def root():
     return {"message": "Notification Service is running"}
 
 @app.get("/notifications")
-def get_all_notifications():
+def get_all_notifications(
+     current_user_id: int = Depends(get_current_user_id),
+    current_user_role: str = Depends(get_current_user_role)
+):
     # Dohvatamo sve email logove iz MongoDB
-    notifications = list(email_logs.find({}, {'_id': 0}))
+    # IDOR zaštita - korisnik vidi samo svoje notifikacije, osim ako je admin
+    if current_user_role == "admin":
+        notifications = list(email_logs.find({}, {'_id': 0}))
+    else:
+        notifications = list(email_logs.find({'user_id': current_user_id}, {'_id': 0}))
     return notifications

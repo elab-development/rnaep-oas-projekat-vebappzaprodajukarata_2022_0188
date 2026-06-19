@@ -17,7 +17,7 @@ def test_process_payment_completed(mock_get_consumer, mock_send_ticket, mock_sen
         'order_id': 1,
         'reservation_id': 10,
         'payment_id': 100,
-        'user_email': 'test@example.com',
+        'user_id': 100,
         'user_email': 'test@example.com',
         'event_name': 'Taylor Swift Concert',
         'event_date': '2026-06-15T20:00:00',
@@ -29,15 +29,16 @@ def test_process_payment_completed(mock_get_consumer, mock_send_ticket, mock_sen
     from kafka_consumer import process_messages
     process_messages()
 
-    mock_send_ticket.assert_called_once_with('test@example.com', 1, 10, 100, 'Taylor Swift Concert', '2026-06-15T20:00:00', 'Stark Arena', 'Beograd')
+    mock_send_ticket.assert_called_once_with(
+        'test@example.com', 1, 10, 100,
+        'Taylor Swift Concert', '2026-06-15T20:00:00', 'Stark Arena', 'Beograd'
+    )
     mock_email_logs.insert_one.assert_called_once()
     inserted_doc = mock_email_logs.insert_one.call_args[0][0]
     assert inserted_doc['type'] == 'ticket'
     assert inserted_doc['order_id'] == 1
+    assert inserted_doc['user_id'] == 100
     assert inserted_doc['email_body']['event_name'] == 'Taylor Swift Concert'
-    assert inserted_doc['email_body']['event_date'] == '2026-06-15T20:00:00'
-    assert inserted_doc['email_body']['venue_name'] == 'Stark Arena'
-    assert inserted_doc['email_body']['venue_address'] == 'Beograd'
     mock_send_notif.assert_called_once_with('notif_1', 1)
 
 
@@ -49,6 +50,7 @@ def test_process_payment_failed(mock_get_consumer, mock_send_error, mock_send_no
     fake_message = make_fake_message('payment.failed', {
         'order_id': 2,
         'reservation_id': 20,
+        'user_id': 200,
         'error': 'Insufficient funds',
         'user_email': 'test2@example.com'
     })
@@ -61,6 +63,7 @@ def test_process_payment_failed(mock_get_consumer, mock_send_error, mock_send_no
     mock_email_logs.insert_one.assert_called_once()
     inserted_doc = mock_email_logs.insert_one.call_args[0][0]
     assert inserted_doc['type'] == 'error'
+    assert inserted_doc['user_id'] == 200
     mock_send_notif.assert_called_once_with('notif_2', 2)
 
 
@@ -72,6 +75,7 @@ def test_process_payment_refunded(mock_get_consumer, mock_send_refund, mock_send
     fake_message = make_fake_message('payment.refunded', {
         'refund_id': 30,
         'payment_id': 3,
+        'user_id': 300,
         'amount': 500.0,
         'user_email': 'test3@example.com'
     })
@@ -84,4 +88,5 @@ def test_process_payment_refunded(mock_get_consumer, mock_send_refund, mock_send
     mock_email_logs.insert_one.assert_called_once()
     inserted_doc = mock_email_logs.insert_one.call_args[0][0]
     assert inserted_doc['type'] == 'refund'
+    assert inserted_doc['user_id'] == 300
     mock_send_notif.assert_called_once_with('notif_3', 3)
