@@ -1,3 +1,4 @@
+import html
 import os
 from postmarker.core import PostmarkClient
 from dotenv import load_dotenv
@@ -7,6 +8,11 @@ load_dotenv()
 client = PostmarkClient(server_token=os.getenv("POSTMARK_API_KEY"))
 
 def send_ticket_email(to_email, order_id, reservation_id, payment_id, event_name, event_date, venue_name, venue_address):
+    # XSS zastita - enkodiramo tekstualna polja prije ubacivanja u HTML
+    event_name = html.escape(event_name)
+    venue_name = html.escape(venue_name)
+    venue_address = html.escape(venue_address)
+    
     # Šaljemo email sa potvrdom kupovine ulaznice
     client.emails.send(
         From=os.getenv("POSTMARK_FROM_EMAIL"),
@@ -24,6 +30,9 @@ def send_ticket_email(to_email, order_id, reservation_id, payment_id, event_name
     )
 
 def send_error_email(to_email, order_id, error_message):
+     # XSS zaštita
+    error_message = html.escape(error_message)
+    
     # Šaljemo email o neuspjelom plaćanju
     client.emails.send(
         From=os.getenv("POSTMARK_FROM_EMAIL"),
