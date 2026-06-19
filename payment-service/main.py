@@ -179,7 +179,7 @@ def create_refund(refund_data: RefundCreate, db: Session = Depends(get_db)):
         db.refresh(refund)
 
         # Šalji payment.refunded event na Kafka
-        send_payment_refunded(refund, refund_data.user_email)
+        send_payment_refunded(refund, payment.user_id, refund_data.user_email)
 
     except Exception as e:
         # Ako refundacija nije uspjela

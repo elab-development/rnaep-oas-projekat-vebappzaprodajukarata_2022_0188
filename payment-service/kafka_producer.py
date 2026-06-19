@@ -21,6 +21,7 @@ def send_payment_completed(payment, user_email, event_name, event_date, venue_na
         'order_id': payment.id,
         'reservation_id': payment.reservation_id,
         'payment_id': payment.id,
+        'user_id': payment.user_id,
         'user_email': user_email,
         'event_name': event_name,
         'event_date': event_date,
@@ -35,17 +36,19 @@ def send_payment_failed(payment, user_email, error):
     get_producer().send('payment.failed', {
         'order_id': payment.id,
         'reservation_id': payment.reservation_id,
+        'user_id': payment.user_id,
         'error': error,
         'user_email': user_email
     })
     get_producer().flush()
 
-def send_payment_refunded(refund, user_email):
+def send_payment_refunded(refund, user_id, user_email):
 # Šaljemo poruku kada je refundacija uspješna
 
     get_producer().send('payment.refunded', {
         'refund_id': refund.id,
         'payment_id': refund.payment_id,
+        'user_id': user_id,
         'amount': refund.amount,
         'user_email': user_email
     })
