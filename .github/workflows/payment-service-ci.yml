@@ -25,6 +25,12 @@ jobs:
           pip install -r payment-service/requirements.txt
 
       - name: Run tests
+        env:
+          DB_USER: testuser
+          DB_PASSWORD: testpass
+          DB_HOST: localhost
+          DB_PORT: 3306
+          DB_NAME: payment_db
         run: |
           cd payment-service
           PYTHONPATH=. pytest -v
