@@ -3,20 +3,27 @@ from database import email_logs
 from kafka_producer import send_notification_sent
 from postmark_client import send_ticket_email, send_error_email, send_refund_email
 import json
-from datetime import datetime
+from datetime import datetime, UTC
 
-consumer = KafkaConsumer(
-    'payment.completed',
-    'payment.failed',
-    'payment.refunded',
-    bootstrap_servers='kafka:9092',
-    value_deserializer=lambda v: json.loads(v.decode('utf-8')),
-    group_id='notification-group',
-    auto_offset_reset='earliest'
-)
+consumer = None
+
+def get_consumer():
+    # Kreira KafkaConsumer SAMO kada je prvi put potreban,
+    # ne odmah pri uvozu ovog fajla (sprečava timeout u testovima)
+    global consumer
+    if consumer is None:
+        consumer = KafkaConsumer(
+            'payment.completed',
+            'payment.failed',
+            'payment.refunded',
+            bootstrap_servers='kafka:9092',
+            value_deserializer=lambda v: json.loads(v.decode('utf-8')),
+            group_id='notification-group',
+            auto_offset_reset='earliest'
+        )
 
 def process_messages():
-    for message in consumer:
+    for message in get_consumer():
         topic = message.topic
         data = message.value
 
@@ -43,8 +50,8 @@ def process_messages():
                     'payment_id': data['payment_id']
                 },
                 'status': 'sent',
-                'sent_at': datetime.utcnow(),
-                'created_at': datetime.utcnow()
+                'sent_at': datetime.now(UTC),
+                'created_at': datetime.now(UTC)
             })
             
             # Šaljemo poruku na notification.sent topic
@@ -72,8 +79,8 @@ def process_messages():
                     'order_id': data['order_id']
                 },
                 'status': 'sent',
-                'sent_at': datetime.utcnow(),
-                'created_at': datetime.utcnow()
+                'sent_at': datetime.now(UTC),
+                'created_at': datetime.now(UTC)
             })
             
             # Šaljemo poruku na notification.sent topic
@@ -103,8 +110,8 @@ def process_messages():
                     'amount': data['amount']
                 },
                 'status': 'sent',
-                'sent_at': datetime.utcnow(),
-                'created_at': datetime.utcnow()
+                'sent_at': datetime.now(UTC),
+                'created_at': datetime.now(UTC)
             })
             
             # Šaljemo poruku na notification.sent topic

@@ -4,3 +4,5 @@ kafka-python
 pymongo
 python-dotenv
 postmarker
+pytest
+httpx
