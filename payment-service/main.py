@@ -1,3 +1,6 @@
+
+import html
+from fastapi.middleware.cors import CORSMiddleware
 from security import get_current_user_id, get_current_user_role
 from contextlib import asynccontextmanager
 from fastapi import FastAPI, HTTPException, Depends
@@ -18,6 +21,14 @@ async def lifespan(app: FastAPI):
     # Ovde bi išlo gasenje resursa, ako bi nam trebalo (nakon yield)
 
 app = FastAPI(title="Payment Service", lifespan=lifespan)
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=['http://localhost:3000'],
+    allow_credentials=True,
+    allow_methods=['*'],
+    allow_headers=['*'],
+)
 
 # Pydantic šeme za validaciju ulaznih podataka
 class PaymentCreate(BaseModel):
@@ -97,6 +108,10 @@ def get_payment(
 
 @app.post("/payments", response_model=PaymentResponse)
 def create_payment(payment_data: PaymentCreate, db: Session = Depends(get_db)):
+    # XSS zaštita - enkodiramo tekstualna polja koja će se prikazati u HTML email-u
+    payment_data.event_name = html.escape(payment_data.event_name)
+    payment_data.venue_name = html.escape(payment_data.venue_name)
+    payment_data.venue_address = html.escape(payment_data.venue_address)
     payment = Payment(
         reservation_id=payment_data.reservation_id,
         user_id=payment_data.user_id,
