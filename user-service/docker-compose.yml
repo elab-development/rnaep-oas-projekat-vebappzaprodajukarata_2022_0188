@@ -1,0 +1,101 @@
+version: '3.8'
+
+services:
+  # User Microservice
+  user-service:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: user-service
+    image: user-service:latest
+    restart: unless-stopped
+    working_dir: /var/www/html
+    environment:
+      DB_CONNECTION: mysql
+      DB_HOST: user-db
+      DB_PORT: 3306
+      DB_DATABASE: users_db
+      DB_USERNAME: root
+      DB_PASSWORD: root_password
+      APP_ENV: local
+      APP_DEBUG: "true"
+    ports:
+      - "8001:9000"
+    depends_on:
+      - user-db
+    volumes:
+      - ./:/var/www/html
+    networks:
+      - app-network
+    command: >
+      sh -c "php artisan migrate:fresh --seed
+      && php-fpm"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8001/api/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  # MySQL baza za User Service
+  user-db:
+    image: mysql:8.0
+    container_name: user-db
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: root_password
+      MYSQL_DATABASE: users_db
+      MYSQL_PASSWORD: user_password
+      MYSQL_USER: user
+    ports:
+      - "3306:3306"
+    volumes:
+      - user-db-volume:/var/lib/mysql
+      # Opciono: inicijalni SQL skript
+      # - ./docker/user-service/init.sql:/docker-entrypoint-initdb.d/init.sql
+    networks:
+      - app-network
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # PhpMyAdmin za upravljanje bazom (opciono - za development)
+  phpmyadmin:
+    image: phpmyadmin:latest
+    container_name: user-phpmyadmin
+    restart: unless-stopped
+    environment:
+      PMA_HOST: user-db
+      PMA_USER: root
+      PMA_PASSWORD: root_password
+      PMA_PORT: 3306
+    ports:
+      - "8081:80"
+    depends_on:
+      - user-db
+    networks:
+      - app-network
+
+  # Nginx reverse proxy (opciono - ako radite lokalno bez API Gateway-a)
+  # nginx:
+  #   image: nginx:alpine
+  #   container_name: user-nginx
+  #   restart: unless-stopped
+  #   ports:
+  #     - "8080:80"
+  #   volumes:
+  #     - ./docker/nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+  #   depends_on:
+  #     - user-service
+  #   networks:
+  #     - app-network
+
+volumes:
+  user-db-volume:
+    driver: local
+
+networks:
+  app-network:
+    driver: bridge
