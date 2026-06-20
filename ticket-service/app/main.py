@@ -7,6 +7,8 @@ from app.kafka_consumer import consume_payment_events
 from app.reservation_cleanup import start_reservation_cleanup_worker
 import threading
 import os
+from shared.logger import setup_metrics
+
 from app.exceptions import (
     TicketNotFoundException,
     SeatNotAvailableException,
@@ -30,6 +32,8 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+setup_metrics(app, "ticket-service")
 
 app.include_router(tickets.router)
 

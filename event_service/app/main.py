@@ -8,6 +8,8 @@ from app.routes.venues import router as venues_router
 from app.routes.categories import router as categories_router
 from fastapi.exceptions import RequestValidationError
 
+from shared.logger import setup_metrics
+
 from app.exceptions import (
     EventNotFoundException,
     VenueNotFoundException,
@@ -37,6 +39,8 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+setup_metrics(app, "event-service")
 
 app.include_router(events_router)
 app.include_router(venues_router)

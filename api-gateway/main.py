@@ -1,3 +1,4 @@
+from shared.logger import setup_metrics
 import os
 import httpx
 from fastapi import FastAPI, Request, Depends, HTTPException
@@ -26,6 +27,7 @@ app.add_middleware(
     allow_headers=['*'],
 )
 
+setup_metrics(app, "api-gateway")
 
 async def proxy_request(request: Request, target_url: str, extra_headers: dict = None):
     # Prosleđujemo zahtjev ka odgovarajućem mikroservisu i vraćamo njegov odgovor

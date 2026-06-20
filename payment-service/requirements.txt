@@ -6,3 +6,4 @@ python-dotenv
 kafka-python
 pytest
 httpx
+prometheus-fastapi-instrumentator

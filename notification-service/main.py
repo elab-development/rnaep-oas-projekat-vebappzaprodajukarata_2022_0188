@@ -1,3 +1,4 @@
+from shared.logger import setup_metrics
 from fastapi.middleware.cors import CORSMiddleware
 from security import get_current_user_id, get_current_user_role
 from contextlib import asynccontextmanager
@@ -14,7 +15,7 @@ async def lifespan(app: FastAPI):
     thread.start()
     yield
 
-app = FastAPI(title="Notification Service")
+app = FastAPI(title="Notification Service", lifespan=lifespan)
 
 app.add_middleware(
     CORSMiddleware,
@@ -23,6 +24,8 @@ app.add_middleware(
     allow_methods=['*'],
     allow_headers=['*'],
 )
+
+setup_metrics(app, "notification-service")
 
 @app.get("/")
 def root():
