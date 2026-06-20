@@ -1,4 +1,4 @@
-
+from shared.logger import setup_metrics
 import html
 from fastapi.middleware.cors import CORSMiddleware
 from security import get_current_user_id, get_current_user_role
@@ -29,6 +29,8 @@ app.add_middleware(
     allow_methods=['*'],
     allow_headers=['*'],
 )
+
+setup_metrics(app, "payment-service")
 
 # Pydantic šeme za validaciju ulaznih podataka
 class PaymentCreate(BaseModel):
