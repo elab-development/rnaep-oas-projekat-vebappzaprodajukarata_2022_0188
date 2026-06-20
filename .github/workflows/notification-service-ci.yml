@@ -32,4 +32,4 @@ jobs:
           POSTMARK_FROM_EMAIL: test@example.com
         run: |
           cd notification-service
-          PYTHONPATH=. pytest -v
+          PYTHONPATH=.:.. pytest -v

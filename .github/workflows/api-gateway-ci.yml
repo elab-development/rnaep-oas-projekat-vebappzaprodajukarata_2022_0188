@@ -31,4 +31,4 @@ jobs:
           USER_SERVICE_URL: http://user-service:8000
         run: |
           cd api-gateway
-          PYTHONPATH=. pytest -v
+          PYTHONPATH=.:.. pytest -v

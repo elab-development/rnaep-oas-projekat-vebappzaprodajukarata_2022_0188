@@ -34,4 +34,5 @@ jobs:
         env:
           TESTING: "true"
           DATABASE_URL: "sqlite:///./test_ticket_service.db"
+          PYTHONPATH: ".:.."
         run: pytest
