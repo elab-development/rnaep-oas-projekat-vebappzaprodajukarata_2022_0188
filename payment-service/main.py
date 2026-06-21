@@ -1,7 +1,6 @@
-from shared.logger import setup_metrics
+from security import get_current_user_id, get_current_user_role
 import html
 from fastapi.middleware.cors import CORSMiddleware
-from security import get_current_user_id, get_current_user_role
 from contextlib import asynccontextmanager
 from fastapi import FastAPI, HTTPException, Depends
 from sqlalchemy.orm import Session
@@ -11,6 +10,7 @@ from pydantic import BaseModel, ConfigDict
 from datetime import datetime, UTC
 from typing import Optional
 from kafka_producer import send_payment_completed, send_payment_failed, send_payment_refunded
+from shared.logger import setup_metrics
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -18,7 +18,7 @@ async def lifespan(app: FastAPI):
     # Izvršava se prije yield (pri pokretanju servisa)
     Base.metadata.create_all(bind=engine)
     yield
-    # Ovde bi išlo gasenje resursa, ako bi nam trebalo (nakon yield)
+    # Ovdje bi išlo gašenje resursa, ako bi nam trebalo (nakon yield)
 
 app = FastAPI(title="Payment Service", lifespan=lifespan)
 
@@ -33,9 +33,11 @@ app.add_middleware(
 setup_metrics(app, "payment-service")
 
 # Pydantic šeme za validaciju ulaznih podataka
+# Napomena: user_id je UKLONJEN odavde - ne smijemo dozvoliti
+# da front sam navede u ime kog korisnika se kreira plaćanje,
+# već se on uzima iz autentifikacije (current_user_id)
 class PaymentCreate(BaseModel):
     reservation_id: int
-    user_id: int
     payment_method_id: int
     amount: float
     user_email: str
@@ -90,16 +92,23 @@ def root():
     return {"message": "Payment Service is running"}
 
 @app.get("/payments", response_model=list[PaymentResponse])
-def get_all_payments(db: Session = Depends(get_db)):
-    return db.query(Payment).all()
-
-@app.get("/payments/{payment_id}", response_model=PaymentResponse)
-def get_payment(
-    payment_id: int, 
+def get_all_payments(
     db: Session = Depends(get_db),
     current_user_id: int = Depends(get_current_user_id),
     current_user_role: str = Depends(get_current_user_role)
-    ):
+):
+    # IDOR zaštita - korisnik vidi samo svoja plaćanja, osim ako je admin
+    if current_user_role == "admin":
+        return db.query(Payment).all()
+    return db.query(Payment).filter(Payment.user_id == current_user_id).all()
+
+@app.get("/payments/{payment_id}", response_model=PaymentResponse)
+def get_payment(
+    payment_id: int,
+    db: Session = Depends(get_db),
+    current_user_id: int = Depends(get_current_user_id),
+    current_user_role: str = Depends(get_current_user_role)
+):
     payment = db.query(Payment).filter(Payment.id == payment_id).first()
     if not payment:
         raise HTTPException(status_code=404, detail="Payment not found")
@@ -109,14 +118,19 @@ def get_payment(
     return payment
 
 @app.post("/payments", response_model=PaymentResponse)
-def create_payment(payment_data: PaymentCreate, db: Session = Depends(get_db)):
+def create_payment(
+    payment_data: PaymentCreate,
+    db: Session = Depends(get_db),
+    current_user_id: int = Depends(get_current_user_id)
+):
     # XSS zaštita - enkodiramo tekstualna polja koja će se prikazati u HTML email-u
     payment_data.event_name = html.escape(payment_data.event_name)
     payment_data.venue_name = html.escape(payment_data.venue_name)
     payment_data.venue_address = html.escape(payment_data.venue_address)
+
     payment = Payment(
         reservation_id=payment_data.reservation_id,
-        user_id=payment_data.user_id,
+        user_id=current_user_id,
         payment_method_id=payment_data.payment_method_id,
         amount=payment_data.amount,
         status="pending"
@@ -145,7 +159,7 @@ def create_payment(payment_data: PaymentCreate, db: Session = Depends(get_db)):
 
         # Šalji payment.completed event na Kafka
         send_payment_completed(
-            payment, 
+            payment,
             payment_data.user_email,
             payment_data.event_name,
             payment_data.event_date,
@@ -169,14 +183,29 @@ def create_payment(payment_data: PaymentCreate, db: Session = Depends(get_db)):
 
 # Refund endpointi
 @app.get("/refunds", response_model=list[RefundResponse])
-def get_all_refunds(db: Session = Depends(get_db)):
-    return db.query(Refund).all()
+def get_all_refunds(
+    db: Session = Depends(get_db),
+    current_user_id: int = Depends(get_current_user_id),
+    current_user_role: str = Depends(get_current_user_role)
+):
+    # IDOR zaštita - korisnik vidi samo refundacije svojih plaćanja, osim ako je admin
+    if current_user_role == "admin":
+        return db.query(Refund).all()
+    return db.query(Refund).join(Payment).filter(Payment.user_id == current_user_id).all()
 
 @app.post("/refunds", response_model=RefundResponse)
-def create_refund(refund_data: RefundCreate, db: Session = Depends(get_db)):
+def create_refund(
+    refund_data: RefundCreate,
+    db: Session = Depends(get_db),
+    current_user_id: int = Depends(get_current_user_id),
+    current_user_role: str = Depends(get_current_user_role)
+):
     payment = db.query(Payment).filter(Payment.id == refund_data.payment_id).first()
     if not payment:
         raise HTTPException(status_code=404, detail="Payment not found")
+    # IDOR zaštita - korisnik može zatražiti refundaciju samo za svoje plaćanje, osim ako je admin
+    if current_user_role != "admin" and payment.user_id != current_user_id:
+        raise HTTPException(status_code=403, detail="Forbidden")
     if payment.status != "paid":
         raise HTTPException(status_code=400, detail="Payment is not paid")
 
@@ -208,12 +237,28 @@ def create_refund(refund_data: RefundCreate, db: Session = Depends(get_db)):
 
 # Transaction endpointi
 @app.get("/transactions", response_model=list[TransactionResponse])
-def get_all_transactions(db: Session = Depends(get_db)):
-    return db.query(Transaction).all()
+def get_all_transactions(
+    db: Session = Depends(get_db),
+    current_user_id: int = Depends(get_current_user_id),
+    current_user_role: str = Depends(get_current_user_role)
+):
+    # IDOR zaštita - korisnik vidi samo svoje transakcije, osim ako je admin
+    if current_user_role == "admin":
+        return db.query(Transaction).all()
+    return db.query(Transaction).join(Payment).filter(Payment.user_id == current_user_id).all()
 
 @app.get("/transactions/{transaction_id}", response_model=TransactionResponse)
-def get_transaction(transaction_id: int, db: Session = Depends(get_db)):
+def get_transaction(
+    transaction_id: int,
+    db: Session = Depends(get_db),
+    current_user_id: int = Depends(get_current_user_id),
+    current_user_role: str = Depends(get_current_user_role)
+):
     transaction = db.query(Transaction).filter(Transaction.id == transaction_id).first()
     if not transaction:
         raise HTTPException(status_code=404, detail="Transaction not found")
+    # IDOR zaštita - korisnik vidi samo svoju transakciju, osim ako je admin
+    payment = db.query(Payment).filter(Payment.id == transaction.payment_id).first()
+    if current_user_role != "admin" and payment and payment.user_id != current_user_id:
+        raise HTTPException(status_code=403, detail="Forbidden")
     return transaction
