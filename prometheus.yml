@@ -1,0 +1,28 @@
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+
+scrape_configs:
+  - job_name: "user-service-py"
+    static_configs:
+      - targets: ["user-service-py:8000"]
+
+  - job_name: "event-service"
+    static_configs:
+      - targets: ["event-service:8000"]
+
+  - job_name: "ticket-service"
+    static_configs:
+      - targets: ["ticket-service:8000"]
+
+  - job_name: "payment-service"
+    static_configs:
+      - targets: ["payment-service:8000"]
+
+  - job_name: "notification-service"
+    static_configs:
+      - targets: ["notification-service:8000"]
+
+  - job_name: "api-gateway"
+    static_configs:
+      - targets: ["api-gateway:8000"]
