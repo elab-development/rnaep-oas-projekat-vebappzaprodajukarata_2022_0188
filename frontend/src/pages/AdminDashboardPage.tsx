@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import EventsSection from "./EventsSection";
 
 interface User {
   id: number;
@@ -42,7 +43,7 @@ function AdminDashboardPage() {
 
       <main className="flex-1 px-8 py-8">
         {section === "users" && <UsersSection />}
-        {section === "events" && <PlaceholderSection title="Događaji" servis="Event servis" />}
+        {section === "events" && <EventsSection />}
         {section === "tickets" && <PlaceholderSection title="Karte" servis="Ticket servis" />}
         {section === "reports" && <PlaceholderSection title="Izveštaji o prodaji" servis="Payment servis" />}
       </main>
