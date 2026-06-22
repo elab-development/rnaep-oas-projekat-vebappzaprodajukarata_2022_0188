@@ -1,0 +1,7 @@
+fastapi
+uvicorn[standard]
+httpx
+python-jose[cryptography]
+python-dotenv
+pytest
+prometheus-fastapi-instrumentator>=7.0.0
