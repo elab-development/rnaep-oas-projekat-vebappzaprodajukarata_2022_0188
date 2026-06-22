@@ -1,5 +1,5 @@
-import type { LoginResponse } from "../types/user_service/Auth";
-import type { UserLogin, UserRegister } from "../types/user_service/User";
+import type { LoginResponse } from "../types/user_service/Auth"; 
+import type { UserLogin, UserRegister,UserResponse } from "../types/user_service/User";
 
 const API_BASE_URL = "http://localhost:8000";
 
@@ -19,7 +19,7 @@ export async function login(data: UserLogin): Promise<LoginResponse> {
   return response.json();
 }
 
-export async function register(data: UserRegister): Promise<LoginResponse> {
+export async function register(data: UserRegister): Promise<UserResponse> {
   const response = await fetch(`${API_BASE_URL}/api/auth/register`, {
     method: "POST",
     headers: {

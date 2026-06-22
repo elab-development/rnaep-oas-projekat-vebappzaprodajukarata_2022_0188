@@ -1,14 +1,15 @@
 import { Routes, Route } from "react-router-dom";
-
+import EventDetailsPage from "./pages/EventDetailsPage";
 import LoginPage from "./pages/LoginPage";
 import RegisterPage from "./pages/RegisterPage";
 import EventsPage from "./pages/EventsPage";
 import UserDashboardPage from "./pages/UserDashboardPage";
 import AdminDashboardPage from "./pages/AdminDashboardPage";
-
+import UserProfilePage from "./pages/UserProfilePage";
 import ProtectedRoute from "./routes/ProtectedRoute";
 import AdminRoute from "./routes/AdminRoute";
 import EventsRoute from "./routes/EventsRoute";
+import MyTicketsPage from "./pages/MyTicketsPage";
 
 function App() {
   return (
@@ -24,7 +25,8 @@ function App() {
           </EventsRoute>
         }
       />
-
+      <Route path="/events/:id" element={<EventDetailsPage />} />
+      <Route path="/my-tickets" element={<MyTicketsPage />} />
       <Route
         path="/dashboard"
         element={
@@ -33,7 +35,7 @@ function App() {
           </ProtectedRoute>
         }
       />
-
+      <Route path="/profile" element={<UserProfilePage />} />
       <Route
         path="/admin-dashboard"
         element={

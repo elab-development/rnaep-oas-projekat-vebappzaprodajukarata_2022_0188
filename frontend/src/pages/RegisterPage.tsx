@@ -46,16 +46,9 @@ function RegisterPage() {
         }
 
         try {
-            const response = await register(formData);
+            await register(formData);
 
-            localStorage.setItem("token", response.token);
-            localStorage.setItem("user", JSON.stringify(response.user));
-
-            localStorage.setItem("token", response.token);
-            localStorage.setItem("user", JSON.stringify(response.user));
-            localStorage.removeItem("guest");
-
-            navigate("/dashboard");
+            navigate("/");
         } catch {
             setError("Registration failed.");
         }

@@ -4,7 +4,7 @@ from datetime import datetime
 from app.security import require_admin
 from app.database import get_db
 from app.models import Event, Venue, Category
-from app.schemas import EventCreate
+from app.schemas import EventCreate,EventResponse
 from app.exceptions import EventNotFoundException
 
 router = APIRouter(prefix="/events", tags=["Events"])
@@ -37,12 +37,12 @@ def create_event(event_data: EventCreate,admin_role: str = Depends(require_admin
     return event
 
 
-@router.get("/")
+@router.get("/",response_model=list[EventResponse])
 def get_all_events(db: Session = Depends(get_db)):
     return db.query(Event).all()
 
 
-@router.get("/{event_id}")
+@router.get("/{event_id}",response_model=EventResponse)
 def get_event(event_id: int, db: Session = Depends(get_db)):
     event = db.query(Event).filter(Event.id == event_id).first()
 

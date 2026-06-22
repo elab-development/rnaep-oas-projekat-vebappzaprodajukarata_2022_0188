@@ -80,8 +80,14 @@ async def proxy_users(path: str, request: Request):
 # ---------------- EVENT SERVICE ----------------
 # Event Service očekuje X-User-Role header, pa ga dodajemo prije prosleđivanja
 
-@app.api_route("/api/events/{path:path}", methods=["GET", "POST", "PUT", "DELETE", "PATCH"])
-async def proxy_events(path: str, request: Request, user_role: str = Depends(get_user_role)):
+@app.api_route("/api/events/{path:path}", methods=["GET"])
+async def proxy_events_get(path: str, request: Request):
+    target_url = f"{EVENT_SERVICE_URL}/events/{path}"
+    return await proxy_request(request, target_url)
+
+
+@app.api_route("/api/events/{path:path}", methods=["POST", "PUT", "DELETE", "PATCH"])
+async def proxy_events_admin(path: str, request: Request, user_role: str = Depends(get_user_role)):
     target_url = f"{EVENT_SERVICE_URL}/events/{path}"
     return await proxy_request(request, target_url, extra_headers={"X-User-Role": user_role})
 
@@ -101,10 +107,40 @@ async def proxy_categories(path: str, request: Request, user_role: str = Depends
 # ---------------- TICKET SERVICE ----------------
 # Ticket Service očekuje X-User-Id header, pa ga dodajemo prije prosleđivanja
 
-@app.api_route("/api/tickets/{path:path}", methods=["GET", "POST"])
-async def proxy_tickets(path: str, request: Request, user_id: int = Depends(decode_token)):
+# ---------------- TICKET SERVICE ----------------
+
+@app.api_route("/api/tickets/my/{path:path}", methods=["GET"])
+async def proxy_my_tickets_get(
+    path: str,
+    request: Request,
+    user_id: int = Depends(decode_token),
+):
+    target_url = f"{TICKET_SERVICE_URL}/tickets/my/{path}"
+    return await proxy_request(
+        request,
+        target_url,
+        extra_headers={"X-User-Id": str(user_id)},
+    )
+
+
+@app.api_route("/api/tickets/{path:path}", methods=["GET"])
+async def proxy_tickets_get(path: str, request: Request):
     target_url = f"{TICKET_SERVICE_URL}/tickets/{path}"
-    return await proxy_request(request, target_url, extra_headers={"X-User-Id": str(user_id)})
+    return await proxy_request(request, target_url)
+
+
+@app.api_route("/api/tickets/{path:path}", methods=["POST", "PUT", "DELETE", "PATCH"])
+async def proxy_tickets_protected(
+    path: str,
+    request: Request,
+    user_id: int = Depends(decode_token),
+):
+    target_url = f"{TICKET_SERVICE_URL}/tickets/{path}"
+    return await proxy_request(
+        request,
+        target_url,
+        extra_headers={"X-User-Id": str(user_id)},
+    )
 
 
 # ---------------- PAYMENT SERVICE ----------------

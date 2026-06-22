@@ -36,3 +36,12 @@ export interface UserOut extends UserBase {
   created_at?: string | null;
   updated_at?: string | null;
 }
+
+export interface UserResponse {
+  id: number;
+  name: string;
+  email: string;
+  roles: string[];
+  created_at: string;
+  updated_at: string;
+}

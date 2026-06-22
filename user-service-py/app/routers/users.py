@@ -60,16 +60,36 @@ def get_one(
     return _user_to_out(user)
 
 
+# @router.put("/{user_id}", response_model=schemas.UserOut)
+# def update_one(
+#     user_id: int,
+#     payload: schemas.UserUpdate,
+#     db: Session = Depends(get_db),
+#     _: User = Depends(require_admin),
+# ):
+#     user = crud.get_user_by_id(db, user_id)
+#     if not user:
+#         raise HTTPException(status_code=404, detail="Korisnik nije pronađen.")
+#     user = crud.update_user(db, user, payload.name, payload.email, payload.password)
+#     return _user_to_out(user)
+
 @router.put("/{user_id}", response_model=schemas.UserOut)
 def update_one(
     user_id: int,
     payload: schemas.UserUpdate,
     db: Session = Depends(get_db),
-    _: User = Depends(require_admin),
+    current_user: User = Depends(get_current_user),
 ):
+    if current_user.id != user_id and not current_user.has_role("admin"):
+        raise HTTPException(
+            status_code=403,
+            detail="Nemate dozvolu da menjate ovog korisnika.",
+        )
+
     user = crud.get_user_by_id(db, user_id)
     if not user:
         raise HTTPException(status_code=404, detail="Korisnik nije pronađen.")
+
     user = crud.update_user(db, user, payload.name, payload.email, payload.password)
     return _user_to_out(user)
 

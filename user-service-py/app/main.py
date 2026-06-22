@@ -9,6 +9,9 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from app.database import Base, engine
 from app.routers import auth, users
+from app import models
+
+Base.metadata.create_all(bind=engine)
 
 from shared.logger import setup_metrics
 
