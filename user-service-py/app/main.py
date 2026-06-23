@@ -3,6 +3,7 @@ Glavna FastAPI aplikacija - User Microservice.
 Pokreni sa:  uvicorn app.main:app --reload --port 8001
 """
 from datetime import datetime
+from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
@@ -11,14 +12,21 @@ from app.database import Base, engine
 from app.routers import auth, users
 from app import models
 
-Base.metadata.create_all(bind=engine)
-
 from shared.logger import setup_metrics
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    # Kreira tabele u bazi podataka ako ne postoje
+    # Izvrsava se tek kada se aplikacija STVARNO pokrene,
+    # ne odmah pri uvozu modula (bitno za testove u CI okruzenju)
+    Base.metadata.create_all(bind=engine)
+    yield
 
 app = FastAPI(
     title="User Microservice",
     description="Mikroservis za korisnike - registracija, autentifikacija, uloge.",
     version="1.0.0",
+    lifespan=lifespan
 )
 
 # CORS - dozvoli pristup sa frontend-a
