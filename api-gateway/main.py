@@ -39,7 +39,7 @@ async def proxy_request(request: Request, target_url: str, extra_headers: dict =
 
     body = await request.body()
 
-    async with httpx.AsyncClient() as client:
+    async with httpx.AsyncClient(follow_redirects=True) as client:
         response = await client.request(
             method=request.method,
             url=target_url,
