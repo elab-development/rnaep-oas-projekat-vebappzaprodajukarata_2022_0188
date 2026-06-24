@@ -102,11 +102,13 @@ function PaymentPage() {
     return `${m}:${sec.toString().padStart(2, "0")}`;
   };
 
-  const userEmail = localStorage.getItem("email") || "";
-
+  const storedUser = localStorage.getItem("user");
+  const userEmail = storedUser ? JSON.parse(storedUser).email : "";
   const handlePay = async () => {
   if (!ticket || paymentInProgress.current) return;
   console.log("PAYMENT METHOD ID U TRENUTKU KLIKA:", paymentMethodId);
+  console.log("USER EMAIL U TRENUTKU KLIKA:", userEmail);
+  console.log("STORED USER U TRENUTKU KLIKA:", storedUser);
   paymentInProgress.current = true;
   setProcessing(true);
   setError("");

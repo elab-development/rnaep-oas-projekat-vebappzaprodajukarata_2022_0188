@@ -18,12 +18,16 @@ def get_consumer():
             'payment.refunded',
             bootstrap_servers='kafka:9092',
             value_deserializer=lambda v: json.loads(v.decode('utf-8')),
-            group_id='notification-group',
-            auto_offset_reset='earliest'
+            group_id='notification-group-v3',
+            auto_offset_reset='latest'
         )
+    return consumer
+
 
 def process_messages():
+    print("KAFKA CONSUMER THREAD POKRENUT, cekam poruke...")
     for message in get_consumer():
+        print(f"PRIMLJENA PORUKA: topic={message.topic}")
         topic = message.topic
         data = message.value
 

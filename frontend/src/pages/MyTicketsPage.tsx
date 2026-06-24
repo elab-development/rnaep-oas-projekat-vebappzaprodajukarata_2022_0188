@@ -216,8 +216,11 @@ function MyTicketsPage() {
       body: JSON.stringify({
         payment_id: ticket.payment_id,
         amount: ticket.price,
-        user_email: localStorage.getItem("email") || "",
-      }),
+        user_email: (() => {
+          const storedUser = localStorage.getItem("user");
+          return storedUser ? JSON.parse(storedUser).email : "";
+      })(),
+  }),
     });
 
     if (!response.ok) {
