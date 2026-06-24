@@ -1,12 +1,13 @@
-import { Link, useNavigate, useParams } from "react-router-dom";
+import { Link, useParams } from "react-router-dom";
 import { useEffect, useState } from "react";
 import logo from "../assets/LOGO.png";
 import type { Event } from "../types/event_service/Event";
 import { fetchEvents } from "../services/eventService";
 
+
 function EventDetailsPage() {
   const { id } = useParams();
-  const navigate = useNavigate();
+
   const isGuest = localStorage.getItem("guest") === "true";
 
   const [event, setEvent] = useState<Event | null>(null);
@@ -28,15 +29,7 @@ function EventDetailsPage() {
     );
   }
 
-  const handleReserve = () => {
-    if (isGuest) {
-      navigate("/");
-      return;
-    }
-
-    navigate(`/events/${event.id}/reserve`);
-  };
-
+  
   return (
     <div className="min-h-screen bg-slate-950 text-white">
       <header className="flex items-center justify-between px-8 py-6 border-b border-slate-800">
@@ -85,12 +78,21 @@ function EventDetailsPage() {
           </div>
         </div>
 
-        <button
-          onClick={handleReserve}
-          className="mt-10 rounded-xl bg-blue-600 px-8 py-4 font-semibold text-white hover:bg-blue-700"
-        >
-          {isGuest ? "Login to reserve" : "Reserve ticket"}
-        </button>
+        {isGuest ? (
+          <Link
+            to="/"
+            className="mt-10 inline-block rounded-xl bg-blue-600 px-8 py-4 font-semibold text-white hover:bg-blue-700"
+          >
+            Login to reserve
+          </Link>
+        ) : (
+          <Link
+            to={`/events/${event.id}/reserve`}
+            className="mt-10 inline-block rounded-xl bg-blue-600 px-8 py-4 font-semibold text-white hover:bg-blue-700"
+          >
+            Reserve Ticket
+          </Link>
+        )}
       </main>
     </div>
   );

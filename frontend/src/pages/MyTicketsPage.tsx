@@ -34,8 +34,17 @@ function MyTicketsPage() {
   const [events, setEvents] = useState<Record<number, EventInfo>>({});
   const [loading, setLoading] = useState(true);
   const [statusFilter, setStatusFilter] = useState("all");
+  const [now, setNow] = useState(Date.now());
 
   const token = localStorage.getItem("token");
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setNow(Date.now());
+    }, 1000);
+
+    return () => clearInterval(interval);
+  }, []);
 
   useEffect(() => {
     async function fetchTickets() {
@@ -84,6 +93,10 @@ function MyTicketsPage() {
     }
 
     fetchTickets();
+
+    const interval = setInterval(fetchTickets, 5000);
+
+    return () => clearInterval(interval);
   }, [token]);
 
   const filteredTickets =
@@ -91,10 +104,33 @@ function MyTicketsPage() {
       ? tickets
       : tickets.filter((ticket) => ticket.reservation_status === statusFilter);
 
+  function getTimeLeft(expiresAt: string) {
+    const expiresAtUtc = expiresAt.endsWith("Z")
+      ? expiresAt
+      : `${expiresAt}Z`;
+
+    const diff = new Date(expiresAtUtc).getTime() - now;
+
+    if (diff <= 0) {
+      return "Expired";
+    }
+
+    const minutes = Math.floor(diff / 1000 / 60);
+    const seconds = Math.floor((diff / 1000) % 60);
+
+    return `${minutes}:${seconds.toString().padStart(2, "0")}`;
+  }
+
   function getStatusText(ticket: MyTicket) {
-    if (ticket.reservation_status === "active") return "Reserved";
-    if (ticket.reservation_status === "confirmed" && ticket.order_status === "paid")
+    if (ticket.reservation_status === "active") {
+      const timeLeft = getTimeLeft(ticket.expires_at);
+      return timeLeft === "Expired" ? "Expired" : "Reserved";
+    }
+
+    if (ticket.reservation_status === "confirmed" && ticket.order_status === "paid") {
       return "Purchased";
+    }
+
     if (ticket.reservation_status === "expired") return "Expired";
     if (ticket.reservation_status === "cancelled") return "Cancelled";
 
@@ -102,14 +138,28 @@ function MyTicketsPage() {
   }
 
   function getStatusClass(ticket: MyTicket) {
-    if (ticket.reservation_status === "active")
-      return "bg-yellow-500/20 text-yellow-300";
-    if (ticket.reservation_status === "confirmed")
-      return "bg-green-500/20 text-green-300";
-    if (ticket.reservation_status === "expired")
+    if (
+      ticket.reservation_status?.toLowerCase().trim() === "active" &&
+      getTimeLeft(ticket.expires_at) === "Expired"
+    ) {
       return "bg-red-500/20 text-red-300";
-    if (ticket.reservation_status === "cancelled")
+    }
+
+    if (ticket.reservation_status?.toLowerCase().trim() === "active") {
+      return "bg-yellow-500/20 text-yellow-300";
+    }
+
+    if (ticket.reservation_status === "confirmed") {
+      return "bg-green-500/20 text-green-300";
+    }
+
+    if (ticket.reservation_status === "expired") {
+      return "bg-red-500/20 text-red-300";
+    }
+
+    if (ticket.reservation_status === "cancelled") {
       return "bg-slate-500/20 text-slate-300";
+    }
 
     return "bg-blue-500/20 text-blue-300";
   }
@@ -134,11 +184,11 @@ function MyTicketsPage() {
         prev.map((ticket) =>
           ticket.reservation_id === reservationId
             ? {
-                ...ticket,
-                reservation_status: "cancelled",
-                ticket_status: "available",
-                order_status: "cancelled",
-              }
+              ...ticket,
+              reservation_status: "cancelled",
+              ticket_status: "available",
+              order_status: "cancelled",
+            }
             : ticket
         )
       );
@@ -204,6 +254,9 @@ function MyTicketsPage() {
           <div className="grid gap-5 md:grid-cols-2 xl:grid-cols-3">
             {filteredTickets.map((ticket) => {
               const event = events[ticket.event_id];
+              const timeLeft = getTimeLeft(ticket.expires_at);
+              const isActive = ticket.reservation_status?.toLowerCase().trim() === "active";
+              const isExpiredOnClient = isActive && timeLeft === "Expired";
 
               return (
                 <div
@@ -218,7 +271,7 @@ function MyTicketsPage() {
 
                       <p className="mt-1 text-sm text-slate-400">
                         {event
-                          ? `${new Date(event.start_time).toLocaleString()}`
+                          ? new Date(event.start_time).toLocaleString()
                           : "Event details unavailable"}
                       </p>
                     </div>
@@ -251,10 +304,18 @@ function MyTicketsPage() {
                       {ticket.price} RSD
                     </p>
 
-                    {ticket.reservation_status === "active" && (
+                    {isActive && (
                       <p>
-                        <span className="text-slate-500">Reserved until:</span>{" "}
-                        {new Date(ticket.expires_at).toLocaleString()}
+                        <span className="text-slate-500">Time left:</span>{" "}
+                        <span
+                          className={
+                            isExpiredOnClient
+                              ? "font-semibold text-red-300"
+                              : "font-semibold text-yellow-300"
+                          }
+                        >
+                          {timeLeft}
+                        </span>
                       </p>
                     )}
 
@@ -266,7 +327,7 @@ function MyTicketsPage() {
                     )}
                   </div>
 
-                  {ticket.reservation_status === "active" && (
+                  {isActive && !isExpiredOnClient && (
                     <div className="mt-6 flex gap-3">
                       <button className="flex-1 rounded-xl bg-blue-600 px-4 py-2 font-semibold hover:bg-blue-500">
                         Pay Now
