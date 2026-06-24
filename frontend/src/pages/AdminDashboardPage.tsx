@@ -13,6 +13,11 @@ import {
   type Payment, type Refund, type Transaction
 } from "../services/paymentAdminService";
 
+import {
+  getTicketsByEvent, getSeatsByEvent, createSeatWithTicket,
+  type AdminSeat, type AdminTicket
+} from "../services/ticketAdminService";
+
 interface User {
   id: number;
   name: string;
@@ -54,7 +59,8 @@ function AdminDashboardPage() {
 
       <main className="flex-1 px-8 py-8">
         {section === "users" && <UsersSection />}
-        {section === "events" && <EventsSection />}        {section === "tickets" && <PlaceholderSection title="Karte" servis="Ticket servis" />}
+        {section === "events" && <EventsSection />}        
+        {section === "tickets" && <TicketsSection />}        
         {section === "reports" && <PaymentReportsSection />}      </main>
     </div>
   );
@@ -660,6 +666,184 @@ function TabButton({ label, active, onClick }: { label: string; active: boolean;
   );
 }
 
+function TicketsSection() {
+  const [events, setEvents] = useState<AdminEvent[]>([]);
+  const [selectedEventId, setSelectedEventId] = useState<string>("");
+  const [seats, setSeats] = useState<AdminSeat[]>([]);
+  const [tickets, setTickets] = useState<AdminTicket[]>([]);
+  const [loadingEvents, setLoadingEvents] = useState(true);
+  const [loadingSeats, setLoadingSeats] = useState(false);
+  const [error, setError] = useState("");
+
+  const [showSeatModal, setShowSeatModal] = useState(false);
+  const [seatForm, setSeatForm] = useState({ row_label: "", seat_number: "", price: "" });
+
+  useEffect(() => {
+    getAllEvents()
+      .then(setEvents)
+      .catch(() => setError("Ne mogu da učitam događaje."))
+      .finally(() => setLoadingEvents(false));
+  }, []);
+
+  const loadSeatsAndTickets = async (eventId: string) => {
+    setLoadingSeats(true);
+    setError("");
+    try {
+      const [seatsData, ticketsData] = await Promise.all([
+        getSeatsByEvent(Number(eventId)),
+        getTicketsByEvent(Number(eventId)),
+      ]);
+      setSeats(seatsData);
+      setTickets(ticketsData);
+    } catch {
+      setError("Ne mogu da učitam sedišta/karte za ovaj događaj.");
+    } finally {
+      setLoadingSeats(false);
+    }
+  };
+
+  const handleSelectEvent = (eventId: string) => {
+    setSelectedEventId(eventId);
+    if (eventId) {
+      loadSeatsAndTickets(eventId);
+    } else {
+      setSeats([]);
+      setTickets([]);
+    }
+  };
+
+  const ticketForSeat = (seatId: number) => tickets.find((t) => t.seat_id === seatId);
+
+  const handleCreateSeat = async (e: React.FormEvent) => {
+    e.preventDefault();
+    try {
+      await createSeatWithTicket({
+        event_id: Number(selectedEventId),
+        row_label: seatForm.row_label,
+        seat_number: Number(seatForm.seat_number),
+        price: Number(seatForm.price),
+      });
+      setShowSeatModal(false);
+      setSeatForm({ row_label: "", seat_number: "", price: "" });
+      await loadSeatsAndTickets(selectedEventId);
+    } catch (err) {
+      window.alert(err instanceof Error ? err.message : "Greška pri kreiranju sedišta.");
+    }
+  };
+
+  const statusBadge = (status: string) => {
+    const colors: Record<string, string> = {
+      available: "bg-green-100 text-green-700",
+      reserved: "bg-amber-100 text-amber-700",
+      sold: "bg-blue-100 text-blue-700",
+    };
+    return colors[status] || "bg-slate-100 text-slate-600";
+  };
+
+  const inputClass = "w-full rounded-xl border border-slate-300 px-4 py-3 outline-none focus:border-blue-600 focus:ring-2 focus:ring-blue-100";
+
+  return (
+    <div>
+      <h1 className="mb-8 text-3xl font-bold text-slate-900">Karte</h1>
+
+      <div className="mb-6 rounded-2xl bg-white p-6 shadow-lg">
+        <label className="mb-2 block text-sm font-medium text-slate-700">Izaberi događaj</label>
+        {loadingEvents ? (
+          <p className="text-slate-500">Učitavanje događaja...</p>
+        ) : (
+          <select
+            className={inputClass}
+            value={selectedEventId}
+            onChange={(e) => handleSelectEvent(e.target.value)}
+          >
+            <option value="">-- Izaberi događaj --</option>
+            {events.map((ev) => (
+              <option key={ev.id} value={ev.id}>{ev.title}</option>
+            ))}
+          </select>
+        )}
+      </div>
+
+      {selectedEventId && (
+        <div className="overflow-hidden rounded-2xl bg-white shadow-lg">
+          <div className="flex items-center justify-between border-b border-slate-200 px-6 py-4">
+            <h2 className="text-lg font-semibold text-slate-900">Sedišta i karte</h2>
+            <button
+              onClick={() => setShowSeatModal(true)}
+              className="rounded-xl bg-blue-600 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-700"
+            >
+              + Novo sedište
+            </button>
+          </div>
+
+          {loadingSeats ? (
+            <p className="px-6 py-8 text-center text-slate-500">Učitavanje...</p>
+          ) : error ? (
+            <p className="px-6 py-8 text-center text-red-600">{error}</p>
+          ) : seats.length === 0 ? (
+            <p className="px-6 py-8 text-center text-slate-500">Nema sedišta za ovaj događaj. Dodajte prvo!</p>
+          ) : (
+            <table className="w-full text-left">
+              <thead className="bg-slate-50 text-sm text-slate-500">
+                <tr>
+                  <th className="px-6 py-3 font-medium">Red</th>
+                  <th className="px-6 py-3 font-medium">Broj sedišta</th>
+                  <th className="px-6 py-3 font-medium">Cena</th>
+                  <th className="px-6 py-3 font-medium">Status</th>
+                </tr>
+              </thead>
+              <tbody>
+                {seats.map((seat) => {
+                  const ticket = ticketForSeat(seat.id);
+                  return (
+                    <tr key={seat.id} className="border-t border-slate-100 hover:bg-slate-50">
+                      <td className="px-6 py-4 font-medium text-slate-900">{seat.row_label}</td>
+                      <td className="px-6 py-4 text-slate-600">{seat.seat_number}</td>
+                      <td className="px-6 py-4 text-slate-600">
+                        {ticket ? `${ticket.price.toLocaleString()} RSD` : "—"}
+                      </td>
+                      <td className="px-6 py-4">
+                        <span className={`rounded-full px-3 py-1 text-xs font-semibold ${statusBadge(seat.status)}`}>
+                          {seat.status}
+                        </span>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          )}
+        </div>
+      )}
+
+      {showSeatModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 px-4">
+          <div className="w-full max-w-md rounded-2xl bg-white p-8 shadow-2xl">
+            <h2 className="mb-6 text-2xl font-bold text-slate-900">Novo sedište</h2>
+            <form onSubmit={handleCreateSeat} className="space-y-4">
+              <input className={inputClass} placeholder="Red (npr. A)" value={seatForm.row_label}
+                onChange={(e) => setSeatForm({ ...seatForm, row_label: e.target.value })} required />
+              <input className={inputClass} type="number" placeholder="Broj sedišta" value={seatForm.seat_number}
+                onChange={(e) => setSeatForm({ ...seatForm, seat_number: e.target.value })} required />
+              <input className={inputClass} type="number" placeholder="Cena" value={seatForm.price}
+                onChange={(e) => setSeatForm({ ...seatForm, price: e.target.value })} required />
+              <div className="flex gap-3 pt-2">
+                <button type="submit" className="flex-1 rounded-xl bg-blue-600 py-3 font-semibold text-white hover:bg-blue-700">
+                  Sačuvaj
+                </button>
+                <button type="button" onClick={() => setShowSeatModal(false)}
+                  className="flex-1 rounded-xl border border-slate-300 py-3 font-semibold text-slate-700 hover:bg-slate-100">
+                  Otkaži
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
 function PaymentReportsSection() {
   const [tab, setTab] = useState<"payments" | "refunds" | "transactions">("payments");
   const [payments, setPayments] = useState<Payment[]>([]);
@@ -817,22 +1001,6 @@ function PaymentReportsSection() {
           </table>
         </div>
       )}
-    </div>
-  );
-}
-
-function PlaceholderSection({ title, servis }: { title: string; servis: string }) {
-  return (
-    <div>
-      <h1 className="mb-8 text-3xl font-bold text-slate-900">{title}</h1>
-      <div className="rounded-2xl bg-white p-12 text-center shadow-lg">
-        <p className="text-lg font-semibold text-slate-700">Uskoro</p>
-        <p className="mt-2 text-slate-500">
-          Ova sekcija prikazivaće podatke iz: <strong>{servis}</strong>.
-          <br />
-          Biće povezana kada API bude spreman.
-        </p>
-      </div>
     </div>
   );
 }

@@ -188,6 +188,7 @@ def get_my_tickets(
         result.append({
             "reservation_id": reservation.id,
             "order_id": order.id if order else None,
+            "payment_id": order.payment_id if order else None,
             "ticket_id": ticket.id,
             "event_id": ticket.event_id,
             "seat_id": seat.id if seat else None,
@@ -387,39 +388,17 @@ def confirm_payment(
         raise HTTPException(status_code=404, detail="Order not found")
 
     if order.status == "paid":
-        raise HTTPException(status_code=400, detail="Order already paid")
-
-    reservation = db.query(Reservation).filter(
-        Reservation.id == order.reservation_id
-    ).first()
-
-    if not reservation:
-        raise HTTPException(status_code=404, detail="Reservation not found")
-
-    ticket = db.query(Ticket).filter(Ticket.id == reservation.ticket_id).first()
-
-    if not ticket:
-        raise TicketNotFoundException()
-
-    reservation.status = "confirmed"
-    order.status = "paid"
-    order.payment_id = payment_id
-    order.paid_at = datetime.utcnow()
-    ticket.status = "sold"
-
-    seat = db.query(Seat).filter(Seat.id == ticket.seat_id).first()
-    if seat:
-        seat.status = "sold"
-
-    db.commit()
-
-    return {
-        "message": "Payment confirmed successfully",
-        "order_id": order.id,
-        "reservation_id": reservation.id,
-        "ticket_id": ticket.id,
-        "status": order.status,
-    }
+        # Order je vec potvrden (npr. drugi/dupli poziv) - vracamo uspeh
+        # umesto greske, jer je krajnji cilj (placeno) vec postignut
+        reservation = db.query(Reservation).filter(
+            Reservation.id == order.reservation_id
+        ).first()
+        return {
+            "message": "Payment already confirmed",
+            "order_id": order.id,
+            "reservation_id": reservation.id if reservation else None,
+            "status": order.status,
+        }
 
 @router.post("/orders/{order_id}/fail-payment")
 def fail_payment(

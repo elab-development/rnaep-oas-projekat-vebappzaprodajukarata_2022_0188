@@ -11,6 +11,8 @@ import AdminRoute from "./routes/AdminRoute";
 import EventsRoute from "./routes/EventsRoute";
 import MyTicketsPage from "./pages/MyTicketsPage";
 import ReserveTicketPage from "./pages/ReserveTicketPage";
+import PaymentPage from "./pages/PaymentPage";
+
 
 function App() {
   return (
@@ -27,6 +29,7 @@ function App() {
         }
       />
       <Route path="/events/:eventId/reserve" element={<ReserveTicketPage />} />
+      <Route path="/payment/:reservationId" element={<PaymentPage />} />
       <Route path="/events/:id" element={<EventDetailsPage />} />
       <Route path="/my-tickets" element={<MyTicketsPage />} />
       

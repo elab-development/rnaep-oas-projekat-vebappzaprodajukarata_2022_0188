@@ -1,10 +1,11 @@
 import { useEffect, useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import logo from "../assets/LOGO.png";
 
 type MyTicket = {
   reservation_id: number;
   order_id: number | null;
+  payment_id: number | null;
   ticket_id: number;
   event_id: number;
   seat_id: number | null;
@@ -31,6 +32,7 @@ type EventInfo = {
 
 function MyTicketsPage() {
   const [tickets, setTickets] = useState<MyTicket[]>([]);
+  const navigate = useNavigate();
   const [events, setEvents] = useState<Record<number, EventInfo>>({});
   const [loading, setLoading] = useState(true);
   const [statusFilter, setStatusFilter] = useState("all");
@@ -197,6 +199,38 @@ function MyTicketsPage() {
     }
   }
 
+  async function requestRefund(ticket: MyTicket) {
+  if (!ticket.payment_id) {
+    alert("Podaci o plaćanju nisu dostupni.");
+    return;
+  }
+  if (!window.confirm("Da li ste sigurni da želite refundaciju?")) return;
+
+  try {
+    const response = await fetch("http://localhost:8000/api/refunds", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify({
+        payment_id: ticket.payment_id,
+        amount: ticket.price,
+        user_email: localStorage.getItem("email") || "",
+      }),
+    });
+
+    if (!response.ok) {
+      throw new Error("Failed to request refund");
+    }
+
+    alert("Refundacija je uspešno zatražena. Detalje ćete dobiti putem emaila.");
+  } catch (error) {
+    console.error(error);
+    alert("Greška pri zahtevu za refundaciju.");
+  }
+}
+
   return (
     <div className="min-h-screen bg-slate-950 text-white">
       <header className="flex items-center justify-between px-8 py-6">
@@ -329,7 +363,10 @@ function MyTicketsPage() {
 
                   {isActive && !isExpiredOnClient && (
                     <div className="mt-6 flex gap-3">
-                      <button className="flex-1 rounded-xl bg-blue-600 px-4 py-2 font-semibold hover:bg-blue-500">
+                      <button 
+                      onClick={() => navigate(`/payment/${ticket.reservation_id}`)}
+                      className="flex-1 rounded-xl bg-blue-600 px-4 py-2 font-semibold hover:bg-blue-500"
+                      >
                         Pay Now
                       </button>
 
@@ -343,8 +380,11 @@ function MyTicketsPage() {
                   )}
 
                   {ticket.reservation_status === "confirmed" && (
-                    <button className="mt-6 w-full rounded-xl bg-green-600 px-4 py-2 font-semibold hover:bg-green-500">
-                      View QR Ticket
+                    <button 
+                    onClick={() => requestRefund(ticket)}
+                    className="mt-6 w-full rounded-xl bg-green-600 px-4 py-2 font-semibold hover:bg-green-500"
+                    >
+                      Zatraži refundaciju
                     </button>
                   )}
                 </div>

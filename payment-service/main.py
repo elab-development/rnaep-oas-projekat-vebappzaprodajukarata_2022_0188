@@ -4,7 +4,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from contextlib import asynccontextmanager
 from fastapi import FastAPI, HTTPException, Depends
 from sqlalchemy.orm import Session
-from database import engine, get_db
+from database import SessionLocal, engine, get_db
 from models import Base, Payment, PaymentMethod, Refund, Transaction
 from pydantic import BaseModel, ConfigDict
 from datetime import datetime, UTC
@@ -17,8 +17,19 @@ async def lifespan(app: FastAPI):
     # Kreira tabele u bazi podataka ako ne postoje
     # Izvršava se prije yield (pri pokretanju servisa)
     Base.metadata.create_all(bind=engine)
+
+    # Seed - dodaj osnovne metode plaćanja ako ne postoje
+    db = SessionLocal()
+    try:
+        if db.query(PaymentMethod).count() == 0:
+            db.add(PaymentMethod(id=1, name="Kreditna kartica"))
+            db.add(PaymentMethod(id=2, name="PayPal"))
+            db.commit()
+    finally:
+        db.close()
+
     yield
-    # Ovdje bi išlo gašenje resursa, ako bi nam trebalo (nakon yield)
+    # Ovde bi išlo gašenje resursa, ako bi nam trebalo (nakon yield)
 
 app = FastAPI(title="Payment Service", lifespan=lifespan)
 
@@ -150,7 +161,11 @@ def create_payment(
         db.commit()
         db.refresh(transaction)
 
-        # Simulacija uspješnog plaćanja
+        # Simulacija obrade plaćanja - PayPal (id 2) simulira neuspeh,
+        # kreditna kartica (id 1) simulira uspeh
+        if payment_data.payment_method_id == 2:
+            raise Exception("PayPal payment declined (simulacija)")
+
         payment.status = "paid"
         payment.paid_at = datetime.now(UTC)
         transaction.status = "success"
@@ -176,8 +191,6 @@ def create_payment(
 
         # Šalji payment.failed event na Kafka
         send_payment_failed(payment, payment_data.user_email, str(e))
-
-        raise HTTPException(status_code=500, detail=str(e))
 
     return payment
 
