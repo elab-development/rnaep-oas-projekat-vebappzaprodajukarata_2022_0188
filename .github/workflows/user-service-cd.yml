@@ -1,0 +1,27 @@
+name: User Service CD
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "user-service-py/**"
+
+jobs:
+  build:
+    name: Build i objavi Docker image
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - name: Preuzmi kod
+        uses: actions/checkout@v4
+
+      - name: Prijava na GitHub Container Registry
+        run: echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
+
+      - name: Build i objavi Docker image
+        run: |
+          IMAGE=ghcr.io/${{ github.repository_owner }}/user-service:latest
+          docker build -t "$IMAGE" ./user-service-py
+          docker push "$IMAGE"
