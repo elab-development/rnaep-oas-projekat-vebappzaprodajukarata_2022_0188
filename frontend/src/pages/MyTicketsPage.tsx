@@ -1,10 +1,11 @@
 import { useEffect, useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import logo from "../assets/LOGO.png";
 
 type MyTicket = {
   reservation_id: number;
   order_id: number | null;
+  payment_id: number | null;
   ticket_id: number;
   event_id: number;
   seat_id: number | null;
@@ -31,11 +32,21 @@ type EventInfo = {
 
 function MyTicketsPage() {
   const [tickets, setTickets] = useState<MyTicket[]>([]);
+  const navigate = useNavigate();
   const [events, setEvents] = useState<Record<number, EventInfo>>({});
   const [loading, setLoading] = useState(true);
   const [statusFilter, setStatusFilter] = useState("all");
+  const [now, setNow] = useState(Date.now());
 
   const token = localStorage.getItem("token");
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setNow(Date.now());
+    }, 1000);
+
+    return () => clearInterval(interval);
+  }, []);
 
   useEffect(() => {
     async function fetchTickets() {
@@ -84,6 +95,10 @@ function MyTicketsPage() {
     }
 
     fetchTickets();
+
+    const interval = setInterval(fetchTickets, 5000);
+
+    return () => clearInterval(interval);
   }, [token]);
 
   const filteredTickets =
@@ -91,10 +106,33 @@ function MyTicketsPage() {
       ? tickets
       : tickets.filter((ticket) => ticket.reservation_status === statusFilter);
 
+  function getTimeLeft(expiresAt: string) {
+    const expiresAtUtc = expiresAt.endsWith("Z")
+      ? expiresAt
+      : `${expiresAt}Z`;
+
+    const diff = new Date(expiresAtUtc).getTime() - now;
+
+    if (diff <= 0) {
+      return "Expired";
+    }
+
+    const minutes = Math.floor(diff / 1000 / 60);
+    const seconds = Math.floor((diff / 1000) % 60);
+
+    return `${minutes}:${seconds.toString().padStart(2, "0")}`;
+  }
+
   function getStatusText(ticket: MyTicket) {
-    if (ticket.reservation_status === "active") return "Reserved";
-    if (ticket.reservation_status === "confirmed" && ticket.order_status === "paid")
+    if (ticket.reservation_status === "active") {
+      const timeLeft = getTimeLeft(ticket.expires_at);
+      return timeLeft === "Expired" ? "Expired" : "Reserved";
+    }
+
+    if (ticket.reservation_status === "confirmed" && ticket.order_status === "paid") {
       return "Purchased";
+    }
+
     if (ticket.reservation_status === "expired") return "Expired";
     if (ticket.reservation_status === "cancelled") return "Cancelled";
 
@@ -102,14 +140,28 @@ function MyTicketsPage() {
   }
 
   function getStatusClass(ticket: MyTicket) {
-    if (ticket.reservation_status === "active")
-      return "bg-yellow-500/20 text-yellow-300";
-    if (ticket.reservation_status === "confirmed")
-      return "bg-green-500/20 text-green-300";
-    if (ticket.reservation_status === "expired")
+    if (
+      ticket.reservation_status?.toLowerCase().trim() === "active" &&
+      getTimeLeft(ticket.expires_at) === "Expired"
+    ) {
       return "bg-red-500/20 text-red-300";
-    if (ticket.reservation_status === "cancelled")
+    }
+
+    if (ticket.reservation_status?.toLowerCase().trim() === "active") {
+      return "bg-yellow-500/20 text-yellow-300";
+    }
+
+    if (ticket.reservation_status === "confirmed") {
+      return "bg-green-500/20 text-green-300";
+    }
+
+    if (ticket.reservation_status === "expired") {
+      return "bg-red-500/20 text-red-300";
+    }
+
+    if (ticket.reservation_status === "cancelled") {
       return "bg-slate-500/20 text-slate-300";
+    }
 
     return "bg-blue-500/20 text-blue-300";
   }
@@ -134,11 +186,11 @@ function MyTicketsPage() {
         prev.map((ticket) =>
           ticket.reservation_id === reservationId
             ? {
-                ...ticket,
-                reservation_status: "cancelled",
-                ticket_status: "available",
-                order_status: "cancelled",
-              }
+              ...ticket,
+              reservation_status: "cancelled",
+              ticket_status: "available",
+              order_status: "cancelled",
+            }
             : ticket
         )
       );
@@ -146,6 +198,41 @@ function MyTicketsPage() {
       console.error(error);
     }
   }
+
+  async function requestRefund(ticket: MyTicket) {
+  if (!ticket.payment_id) {
+    alert("Podaci o plaćanju nisu dostupni.");
+    return;
+  }
+  if (!window.confirm("Da li ste sigurni da želite refundaciju?")) return;
+
+  try {
+    const response = await fetch("http://localhost:8000/api/refunds", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify({
+        payment_id: ticket.payment_id,
+        amount: ticket.price,
+        user_email: (() => {
+          const storedUser = localStorage.getItem("user");
+          return storedUser ? JSON.parse(storedUser).email : "";
+      })(),
+  }),
+    });
+
+    if (!response.ok) {
+      throw new Error("Failed to request refund");
+    }
+
+    alert("Refundacija je uspešno zatražena. Detalje ćete dobiti putem emaila.");
+  } catch (error) {
+    console.error(error);
+    alert("Greška pri zahtevu za refundaciju.");
+  }
+}
 
   return (
     <div className="min-h-screen bg-slate-950 text-white">
@@ -204,6 +291,9 @@ function MyTicketsPage() {
           <div className="grid gap-5 md:grid-cols-2 xl:grid-cols-3">
             {filteredTickets.map((ticket) => {
               const event = events[ticket.event_id];
+              const timeLeft = getTimeLeft(ticket.expires_at);
+              const isActive = ticket.reservation_status?.toLowerCase().trim() === "active";
+              const isExpiredOnClient = isActive && timeLeft === "Expired";
 
               return (
                 <div
@@ -218,7 +308,7 @@ function MyTicketsPage() {
 
                       <p className="mt-1 text-sm text-slate-400">
                         {event
-                          ? `${new Date(event.start_time).toLocaleString()}`
+                          ? new Date(event.start_time).toLocaleString()
                           : "Event details unavailable"}
                       </p>
                     </div>
@@ -251,10 +341,18 @@ function MyTicketsPage() {
                       {ticket.price} RSD
                     </p>
 
-                    {ticket.reservation_status === "active" && (
+                    {isActive && (
                       <p>
-                        <span className="text-slate-500">Reserved until:</span>{" "}
-                        {new Date(ticket.expires_at).toLocaleString()}
+                        <span className="text-slate-500">Time left:</span>{" "}
+                        <span
+                          className={
+                            isExpiredOnClient
+                              ? "font-semibold text-red-300"
+                              : "font-semibold text-yellow-300"
+                          }
+                        >
+                          {timeLeft}
+                        </span>
                       </p>
                     )}
 
@@ -266,9 +364,12 @@ function MyTicketsPage() {
                     )}
                   </div>
 
-                  {ticket.reservation_status === "active" && (
+                  {isActive && !isExpiredOnClient && (
                     <div className="mt-6 flex gap-3">
-                      <button className="flex-1 rounded-xl bg-blue-600 px-4 py-2 font-semibold hover:bg-blue-500">
+                      <button 
+                      onClick={() => navigate(`/payment/${ticket.reservation_id}`)}
+                      className="flex-1 rounded-xl bg-blue-600 px-4 py-2 font-semibold hover:bg-blue-500"
+                      >
                         Pay Now
                       </button>
 
@@ -282,8 +383,11 @@ function MyTicketsPage() {
                   )}
 
                   {ticket.reservation_status === "confirmed" && (
-                    <button className="mt-6 w-full rounded-xl bg-green-600 px-4 py-2 font-semibold hover:bg-green-500">
-                      View QR Ticket
+                    <button 
+                    onClick={() => requestRefund(ticket)}
+                    className="mt-6 w-full rounded-xl bg-green-600 px-4 py-2 font-semibold hover:bg-green-500"
+                    >
+                      Zatraži refundaciju
                     </button>
                   )}
                 </div>
