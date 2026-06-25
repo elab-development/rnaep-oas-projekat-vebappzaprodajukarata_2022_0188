@@ -103,4 +103,4 @@ docker-compose up -d
 docker-compose exec user-service python -m app.seed
 ```
 
-Server : `http://localhost:8001`
+Server :: `http://localhost:8001`

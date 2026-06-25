@@ -132,7 +132,7 @@ Start the application:
 uvicorn app.main:app --reload
 ```
 
-Run tests :
+Run tests ::
 
 ```bash
 pytest

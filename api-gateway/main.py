@@ -77,7 +77,7 @@ async def proxy_users(path: str, request: Request):
     return await proxy_request(request, target_url)
 
 
-# ---------------- EVENT SERVICE ----------------
+# ---------------- EVENT SERVICE -----------------
 # Event Service očekuje X-User-Role header, pa ga dodajemo prije prosleđivanja
 
 @app.api_route("/api/events/{path:path}", methods=["GET"])
