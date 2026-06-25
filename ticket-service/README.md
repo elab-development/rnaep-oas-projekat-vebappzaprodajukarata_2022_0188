@@ -6,12 +6,12 @@ Ticket Service is a microservice developed using Python and FastAPI. Its purpose
 
 ## Technologies
 
-* Python 3.12
-* FastAPI
-* SQLAlchemy
-* MySQL
-* Kafka
-* Pytest
+- Python 3.12
+- FastAPI
+- SQLAlchemy
+- MySQL
+- Kafka
+- Pytest
 
 ## Database Entities
 
@@ -21,9 +21,9 @@ Represents a seat for an event.
 
 Possible statuses:
 
-* available
-* reserved
-* sold
+- available
+- reserved
+- sold
 
 ### Ticket
 
@@ -31,9 +31,9 @@ Represents a ticket associated with a seat.
 
 Possible statuses:
 
-* available
-* reserved
-* sold
+- available
+- reserved
+- sold
 
 ### Reservation
 
@@ -41,10 +41,10 @@ Represents a temporary ticket reservation.
 
 Possible statuses:
 
-* active
-* confirmed
-* expired
-* cancelled
+- active
+- confirmed
+- expired
+- cancelled
 
 ### Order
 
@@ -52,9 +52,9 @@ Represents an order created for a reservation.
 
 Possible statuses:
 
-* pending_payment
-* paid
-* cancelled
+- pending_payment
+- paid
+- cancelled
 
 ## Reservation Process
 
@@ -77,10 +77,10 @@ Payment Service publishes the event:
 
 Ticket Service:
 
-* changes Reservation status to `confirmed`
-* changes Order status to `paid`
-* changes Ticket status to `sold`
-* changes Seat status to `sold`
+- changes Reservation status to `confirmed`
+- changes Order status to `paid`
+- changes Ticket status to `sold`
+- changes Seat status to `sold`
 
 ### Failed Payment
 
@@ -90,10 +90,10 @@ Payment Service publishes the event:
 
 Ticket Service performs a compensation transaction:
 
-* changes Reservation status to `cancelled`
-* changes Order status to `cancelled`
-* changes Ticket status to `available`
-* changes Seat status to `available`
+- changes Reservation status to `cancelled`
+- changes Order status to `cancelled`
+- changes Ticket status to `available`
+- changes Seat status to `available`
 
 This approach guarantees data consistency without distributed transactions.
 
@@ -113,10 +113,10 @@ Reservations are valid for 10 minutes.
 
 A background worker periodically checks expired reservations and automatically:
 
-* sets Reservation status to `expired`
-* sets Order status to `cancelled`
-* releases the ticket
-* releases the seat
+- sets Reservation status to `expired`
+- sets Order status to `cancelled`
+- releases the ticket
+- releases the seat
 
 ## Running the Service
 
@@ -132,7 +132,7 @@ Start the application:
 uvicorn app.main:app --reload
 ```
 
-Run tests:
+Run tests :
 
 ```bash
 pytest

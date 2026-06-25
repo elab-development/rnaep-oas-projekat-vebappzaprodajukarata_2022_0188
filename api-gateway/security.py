@@ -46,5 +46,5 @@ def get_user_role(authorization: str | None = Header(default=None)) -> str:
     user_data = response.json()
     roles = user_data.get("roles", [])
 
-    # Vraća "admin" ako korisnik ima tu ulogu, inače "user"
+    # Vraća "admin" ako korisnik ima tu ulogu,  inače "user"
     return "admin" if "admin" in roles else "user"

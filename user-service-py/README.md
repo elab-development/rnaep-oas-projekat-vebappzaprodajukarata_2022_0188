@@ -60,17 +60,18 @@ Testovi koriste SQLite u memoriji — ne treba MySQL za pokretanje testova.
 
 ## Test korisnici (kreiraju se sa `python -m app.seed`)
 
-| Email | Lozinka | Uloga |
-|-------|---------|-------|
-| admin@example.com | Admin123! | admin |
-| user@example.com | User123! | user |
-| aleksandra@example.com | Aleksandra123! | user |
-| janja@example.com | Janja123! | user |
-| milica@example.com | Milica123! | user |
+| Email                  | Lozinka        | Uloga |
+| ---------------------- | -------------- | ----- |
+| admin@example.com      | Admin123!      | admin |
+| user@example.com       | User123!       | user  |
+| aleksandra@example.com | Aleksandra123! | user  |
+| janja@example.com      | Janja123!      | user  |
+| milica@example.com     | Milica123!     | user  |
 
 ## API rute
 
 ### Javne
+
 - `POST /api/auth/register` — registracija
 - `POST /api/auth/login` — login (vraća JWT token)
 - `POST /api/auth/forgot-password` — zahtev za reset lozinke
@@ -79,11 +80,13 @@ Testovi koriste SQLite u memoriji — ne treba MySQL za pokretanje testova.
 - `GET /api/health` — health check
 
 ### Zaštićene (Authorization: Bearer TOKEN)
+
 - `GET /api/auth/me` — moj profil
 - `PUT /api/auth/profile` — izmena profila
 - `POST /api/auth/logout` — odjava
 
 ### Admin
+
 - `GET /api/users` — lista korisnika
 - `GET /api/users/search?q=...` — pretraga
 - `GET /api/users/{id}` — jedan korisnik
@@ -100,4 +103,4 @@ docker-compose up -d
 docker-compose exec user-service python -m app.seed
 ```
 
-Server: `http://localhost:8001`
+Server : `http://localhost:8001`

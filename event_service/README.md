@@ -10,20 +10,20 @@ The service is implemented using FastAPI and follows the database-per-service mi
 
 ## Technologies
 
-* Python 3.12
-* FastAPI
-* SQLAlchemy
-* MySQL
-* PyMySQL
-* Pytest
-* GitHub Actions
-* SQLite (used for testing)
+- Python 3.12
+- FastAPI
+- SQLAlchemy
+- MySQL
+- PyMySQL
+- Pytest
+- GitHub Actions
+- SQLite (used for testing)
 
 ---
 
 ## Database
 
-Database name:
+Database :
 
 ```text
 event_db
@@ -37,32 +37,32 @@ The service uses its own database in accordance with the Database per Service pa
 
 ### Event
 
-* id
-* title
-* description
-* start_time
-* end_time
-* status
-* venue_id
-* category_id
-* created_at
-* updated_at
+- id
+- title
+- description
+- start_time
+- end_time
+- status
+- venue_id
+- category_id
+- created_at
+- updated_at
 
 ### Venue
 
-* id
-* name
-* address
-* city
-* capacity
-* latitude
-* longitude
+- id
+- name
+- address
+- city
+- capacity
+- latitude
+- longitude
 
 ### Category
 
-* id
-* name
-* description
+- id
+- name
+- description
 
 ---
 
@@ -107,28 +107,28 @@ http://127.0.0.1:8000/docs
 
 ### Events
 
-* POST /events/
-* GET /events/
-* GET /events/{event_id}
-* PUT /events/{event_id}
-* DELETE /events/{event_id}
-* PATCH /events/{event_id}/cancel
+- POST /events/
+- GET /events/
+- GET /events/{event_id}
+- PUT /events/{event_id}
+- DELETE /events/{event_id}
+- PATCH /events/{event_id}/cancel
 
 ### Venues
 
-* POST /venues/
-* GET /venues/
-* GET /venues/{venue_id}
-* PUT /venues/{venue_id}
-* DELETE /venues/{venue_id}
+- POST /venues/
+- GET /venues/
+- GET /venues/{venue_id}
+- PUT /venues/{venue_id}
+- DELETE /venues/{venue_id}
 
 ### Categories
 
-* POST /categories/
-* GET /categories/
-* GET /categories/{category_id}
-* PUT /categories/{category_id}
-* DELETE /categories/{category_id}
+- POST /categories/
+- GET /categories/
+- GET /categories/{category_id}
+- PUT /categories/{category_id}
+- DELETE /categories/{category_id}
 
 ---
 
@@ -136,11 +136,11 @@ http://127.0.0.1:8000/docs
 
 The service implements:
 
-* CORS configuration
-* SQL Injection protection through SQLAlchemy ORM
-* IDOR protection through role-based authorization
-* Custom exception handlers
-* Validation using Pydantic schemas
+- CORS configuration
+- SQL Injection protection through SQLAlchemy ORM
+- IDOR protection through role-based authorization
+- Custom exception handlers
+- Validation using Pydantic schemas
 
 Administrative operations require:
 
