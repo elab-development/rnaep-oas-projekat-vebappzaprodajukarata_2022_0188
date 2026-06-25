@@ -131,7 +131,7 @@ Payment Service automatski popunjava osnovne metode plaćanja prilikom pokretanj
 
 ```text
 .
-├── user-service-py/        # User Service
+├── user-service-py/         # User Service
 ├── event_service/           # Event Service
 ├── ticket-service/          # Ticket Service
 ├── payment-service/         # Payment Service

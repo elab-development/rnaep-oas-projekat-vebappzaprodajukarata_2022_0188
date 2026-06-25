@@ -130,4 +130,4 @@ GitHub Actions se koristi za automatsko pokretanje testova prilikom svakog push-
 
 ## Monitoring
 
-Servis izlaže `/metrics` endpoint koji koristi Prometheus za prikupljanje telemetrijskih podataka (broj HTTP zahteva, trajanje obrade, status kodovi).
+Servis izlaže `/metrics` endpoint koji koristi Prometheus za prikupljanje telemetrijskih podataka (broj HTTP zahteva, trajanje obrade, status kodovi) .
