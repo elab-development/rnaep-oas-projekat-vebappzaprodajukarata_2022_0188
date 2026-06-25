@@ -168,7 +168,7 @@ pytest
 
 ---
 
-## Continuous Integration
+### Continuous Integration
 
 GitHub Actions are used to automatically execute tests on every push and pull request.
 

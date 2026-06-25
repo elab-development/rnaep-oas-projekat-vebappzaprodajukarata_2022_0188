@@ -147,4 +147,4 @@ Payment Service automatski popunjava osnovne metode plaćanja prilikom pokretanj
 
 ## CI/CD
 
-Svaki mikroservis poseduje sopstveni GitHub Actions workflow koji automatski pokreće testove prilikom svakog push-a i pull request-a na glavne grane. Nakon uspešnog merge-a na main granu, automatski se izgrađuje i objavljuje Docker image servisa.
+Svaki mikroservis poseduje sopstveni GitHub Actions workflow koji automatski pokreće testove prilikom svakog push-a i pull request-a na glavne grane. Nakon uspešnog merge-a na main granu, automatski se izgrađuje i objavljuje Docker image servisa .
