@@ -1,0 +1,9 @@
+fastapi
+uvicorn[standard]
+sqlalchemy
+pymysql
+python-dotenv
+kafka-python
+pytest
+httpx
+prometheus-fastapi-instrumentator>=7.0.0

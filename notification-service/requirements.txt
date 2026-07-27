@@ -1,0 +1,9 @@
+fastapi
+uvicorn[standard]
+kafka-python
+pymongo
+python-dotenv
+postmarker
+pytest
+httpx
+prometheus-fastapi-instrumentator>=7.0.0

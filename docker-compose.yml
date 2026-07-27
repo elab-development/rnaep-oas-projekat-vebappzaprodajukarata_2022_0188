@@ -1,0 +1,262 @@
+services:
+  # ==================== BAZE PODATAKA ====================
+  mysql-user:
+    image: mysql:8.0
+    container_name: mysql-user
+    environment:
+      MYSQL_ROOT_PASSWORD: rootpass
+      MYSQL_DATABASE: users_db
+    ports:
+      - "3307:3306"
+    volumes:
+      - mysql_user_data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-prootpass"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  mysql-event:
+    image: mysql:8.0
+    container_name: mysql-event
+    environment:
+      MYSQL_ROOT_PASSWORD: rootpass
+      MYSQL_DATABASE: event_db
+    ports:
+      - "3308:3306"
+    volumes:
+      - mysql_event_data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-prootpass"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  mysql-ticket:
+    image: mysql:8.0
+    container_name: mysql-ticket
+    environment:
+      MYSQL_ROOT_PASSWORD: rootpass
+      MYSQL_DATABASE: ticket_db
+    ports:
+      - "3309:3306"
+    volumes:
+      - mysql_ticket_data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-prootpass"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  mysql-payment:
+    image: mysql:8.0
+    container_name: mysql-payment
+    environment:
+      MYSQL_ROOT_PASSWORD: rootpass
+      MYSQL_DATABASE: payment_db
+    ports:
+      - "3310:3306"
+    volumes:
+      - mysql_payment_data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-prootpass"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  mongodb:
+    image: mongo:7
+    container_name: mongodb
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongo_data:/data/db
+
+  # ==================== KAFKA ====================
+  zookeeper:
+    image: confluentinc/cp-zookeeper:7.4.0
+    container_name: zookeeper
+    environment:
+      ZOOKEEPER_CLIENT_PORT: 2181
+
+  kafka:
+    image: confluentinc/cp-kafka:7.4.0
+    container_name: kafka
+    depends_on:
+      - zookeeper
+    ports:
+      - "9092:9092"
+    environment:
+      KAFKA_BROKER_ID: 1
+      KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:9092
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+    healthcheck:
+      test: ["CMD-SHELL", "nc -z localhost 9092 || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # ==================== MIKROSERVISI ====================
+  user-service-py:
+    build:
+      context: ./user-service-py
+    container_name: user-service-py
+    environment:
+      DB_HOST: mysql-user
+      DB_PORT: 3306
+      DB_DATABASE: users_db
+      DB_USERNAME: root
+      DB_PASSWORD: rootpass
+      SECRET_KEY: promeni-ovaj-tajni-kljuc-u-produkciji-mora-biti-dugacak
+      ALGORITHM: HS256
+      ACCESS_TOKEN_EXPIRE_MINUTES: 60
+    depends_on:
+      mysql-user:
+        condition: service_healthy
+    ports:
+      - "8005:8000"
+    volumes:
+      - ./shared:/app/shared
+
+  event-service:
+    build:
+      context: ./event_service
+    container_name: event-service
+    environment:
+      DATABASE_URL: mysql+pymysql://root:rootpass@mysql-event:3306/event_db
+    depends_on:
+      mysql-event:
+        condition: service_healthy
+    ports:
+      - "8003:8000"
+    volumes:
+      - ./shared:/app/shared
+
+  ticket-service:
+    build:
+      context: ./ticket-service
+    container_name: ticket-service
+    environment:
+      DATABASE_URL: mysql+pymysql://root:rootpass@mysql-ticket:3306/ticket_db
+      KAFKA_BOOTSTRAP_SERVERS: kafka:9092
+    depends_on:
+      mysql-ticket:
+        condition: service_healthy
+      kafka:
+        condition: service_healthy
+    ports:
+      - "8004:8000"
+    volumes:
+      - ./shared:/app/shared
+
+  payment-service:
+    build:
+      context: ./payment-service
+    container_name: payment-service
+    environment:
+      DB_USER: root
+      DB_PASSWORD: rootpass
+      DB_HOST: mysql-payment
+      DB_PORT: 3306
+      DB_NAME: payment_db
+    depends_on:
+      mysql-payment:
+        condition: service_healthy
+      kafka:
+        condition: service_healthy
+    ports:
+      - "8001:8000"
+    volumes:
+      - ./shared:/app/shared
+
+  notification-service:
+    build:
+      context: ./notification-service
+    container_name: notification-service
+    environment:
+      PYTHONUNBUFFERED: 1
+      MONGO_URL: mongodb://mongodb:27017
+      MONGO_DB: notification_db
+      POSTMARK_API_KEY: ${POSTMARK_API_KEY}
+      POSTMARK_FROM_EMAIL: ${POSTMARK_FROM_EMAIL}
+    depends_on:
+      mongodb:
+        condition: service_started
+      kafka:
+        condition: service_healthy
+    ports:
+      - "8002:8000"
+    volumes:
+      - ./shared:/app/shared
+
+  api-gateway:
+    build:
+      context: ./api-gateway
+    container_name: api-gateway
+    environment:
+      SECRET_KEY: promeni-ovaj-tajni-kljuc-u-produkciji-mora-biti-dugacak
+      ALGORITHM: HS256
+      USER_SERVICE_URL: http://user-service-py:8000
+      EVENT_SERVICE_URL: http://event-service:8000
+      TICKET_SERVICE_URL: http://ticket-service:8000
+      PAYMENT_SERVICE_URL: http://payment-service:8000
+      NOTIFICATION_SERVICE_URL: http://notification-service:8000
+    depends_on:
+      - user-service-py
+      - event-service
+      - ticket-service
+      - payment-service
+      - notification-service
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./shared:/app/shared
+
+  # ==================== FRONTEND ====================
+  frontend:
+    build:
+      context: ./frontend
+    container_name: frontend
+    depends_on:
+      - api-gateway
+    ports:
+      - "3000:80"
+
+  # ==================== MONITORING ====================
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: prometheus
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./prometheus.yml:/etc/prometheus/prometheus.yml
+      - prometheus_data:/prometheus
+    depends_on:
+      - user-service-py
+      - event-service
+      - ticket-service
+      - payment-service
+      - notification-service
+      - api-gateway
+
+  grafana:
+    image: grafana/grafana:latest
+    container_name: grafana
+    ports:
+      - "3001:3000"
+    environment:
+      GF_SECURITY_ADMIN_PASSWORD: grafanaPassword123
+    volumes:
+      - grafana_data:/var/lib/grafana
+    depends_on:
+      - prometheus
+
+volumes:
+  mysql_user_data:
+  mysql_event_data:
+  mysql_ticket_data:
+  mysql_payment_data:
+  mongo_data:
+  prometheus_data:
+  grafana_data:
