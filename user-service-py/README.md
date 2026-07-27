@@ -96,7 +96,7 @@ Testovi koriste SQLite u memoriji — ne treba MySQL za pokretanje testova.
 - `DELETE /api/users/{id}/remove-role` — uklanjanje uloge
 - `GET /api/users/statistics/count` — broj korisnika
 
-## Docker
+### Docker
 
 ```bash
 docker-compose up -d
