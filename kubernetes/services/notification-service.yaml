@@ -1,0 +1,52 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: notification-service
+  namespace: app
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: notification-service
+  template:
+    metadata:
+      labels:
+        app: notification-service
+    spec:
+      containers:
+        - name: notification-service
+          image: milicaadrljacaa/notification-service:latest
+          ports:
+            - containerPort: 8000
+          env:
+            - name: PYTHONUNBUFFERED
+              value: "1"
+            - name: MONGO_URL
+              value: "mongodb://mongodb.databases.svc.cluster.local:27017"
+            - name: MONGO_DB
+              value: "notification_db"
+            - name: KAFKA_BOOTSTRAP_SERVERS
+              value: "kafka-cluster-kafka-bootstrap.kafka.svc.cluster.local:9092"
+            - name: POSTMARK_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: app-secret
+                  key: postmark-api-key
+            - name: POSTMARK_FROM_EMAIL
+              valueFrom:
+                secretKeyRef:
+                  name: app-secret
+                  key: postmark-from-email
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: notification-service
+  namespace: app
+spec:
+  selector:
+    app: notification-service
+  ports:
+    - port: 8000
+      targetPort: 8000
+  type: ClusterIP

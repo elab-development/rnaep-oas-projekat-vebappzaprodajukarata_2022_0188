@@ -1,0 +1,36 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: event-service
+  namespace: app
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: event-service
+  template:
+    metadata:
+      labels:
+        app: event-service
+    spec:
+      containers:
+        - name: event-service
+          image: milicaadrljacaa/event-service:latest
+          ports:
+            - containerPort: 8000
+          env:
+            - name: DATABASE_URL
+              value: "mysql+pymysql://root:rootpass@mysql-event.databases.svc.cluster.local:3306/event_db"
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: event-service
+  namespace: app
+spec:
+  selector:
+    app: event-service
+  ports:
+    - port: 8000
+      targetPort: 8000
+  type: ClusterIP

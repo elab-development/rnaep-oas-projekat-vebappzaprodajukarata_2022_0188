@@ -1,0 +1,54 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: api-gateway
+  namespace: app
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: api-gateway
+  template:
+    metadata:
+      labels:
+        app: api-gateway
+    spec:
+      containers:
+        - name: api-gateway
+          image: milicaadrljacaa/api-gateway:latest
+          ports:
+            - containerPort: 8000
+          env:
+            - name: SECRET_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: app-secret
+                  key: secret-key
+            - name: ALGORITHM
+              valueFrom:
+                secretKeyRef:
+                  name: app-secret
+                  key: algorithm
+            - name: USER_SERVICE_URL
+              value: "http://user-service.app.svc.cluster.local:8000"
+            - name: EVENT_SERVICE_URL
+              value: "http://event-service.app.svc.cluster.local:8000"
+            - name: TICKET_SERVICE_URL
+              value: "http://ticket-service.app.svc.cluster.local:8000"
+            - name: PAYMENT_SERVICE_URL
+              value: "http://payment-service.app.svc.cluster.local:8000"
+            - name: NOTIFICATION_SERVICE_URL
+              value: "http://notification-service.app.svc.cluster.local:8000"
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: api-gateway
+  namespace: app
+spec:
+  selector:
+    app: api-gateway
+  ports:
+    - port: 8000
+      targetPort: 8000
+  type: ClusterIP
