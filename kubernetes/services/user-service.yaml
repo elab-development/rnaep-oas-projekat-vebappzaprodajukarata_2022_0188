@@ -1,0 +1,59 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: user-service
+  namespace: app
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: user-service
+  template:
+    metadata:
+      labels:
+        app: user-service
+    spec:
+      containers:
+        - name: user-service
+          image: milicaadrljacaa/user-service-py:latest
+          ports:
+            - containerPort: 8000
+          env:
+            - name: DB_HOST
+              value: "mysql-user.databases.svc.cluster.local"
+            - name: DB_PORT
+              value: "3306"
+            - name: DB_DATABASE
+              value: "users_db"
+            - name: DB_USERNAME
+              value: "root"
+            - name: DB_PASSWORD
+              value: "rootpass"
+            - name: SECRET_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: app-secret
+                  key: secret-key
+            - name: ALGORITHM
+              valueFrom:
+                secretKeyRef:
+                  name: app-secret
+                  key: algorithm
+            - name: ACCESS_TOKEN_EXPIRE_MINUTES
+              valueFrom:
+                secretKeyRef:
+                  name: app-secret
+                  key: access-token-expire-minutes
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: user-service
+  namespace: app
+spec:
+  selector:
+    app: user-service
+  ports:
+    - port: 8000
+      targetPort: 8000
+  type: ClusterIP

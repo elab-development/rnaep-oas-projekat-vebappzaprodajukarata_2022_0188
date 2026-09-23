@@ -1,0 +1,61 @@
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: mysql-payment-pvc
+  namespace: databases
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 1Gi
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: mysql-payment
+  namespace: databases
+spec:
+  serviceName: mysql-payment
+  replicas: 1
+  selector:
+    matchLabels:
+      app: mysql-payment
+  template:
+    metadata:
+      labels:
+        app: mysql-payment
+    spec:
+      containers:
+        - name: mysql-payment
+          image: mysql:8.0
+          env:
+            - name: MYSQL_ROOT_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: mysql-secret
+                  key: root-password
+            - name: MYSQL_DATABASE
+              value: payment_db
+          ports:
+            - containerPort: 3306
+          volumeMounts:
+            - name: mysql-payment-storage
+              mountPath: /var/lib/mysql
+      volumes:
+        - name: mysql-payment-storage
+          persistentVolumeClaim:
+            claimName: mysql-payment-pvc
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: mysql-payment
+  namespace: databases
+spec:
+  selector:
+    app: mysql-payment
+  ports:
+    - port: 3306
+      targetPort: 3306
+  type: ClusterIP

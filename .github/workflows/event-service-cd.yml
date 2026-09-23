@@ -5,6 +5,7 @@ on:
     branches: [main]
     paths:
       - "event_service/**"
+      - "shared/**"
 
 jobs:
   build-and-push:
@@ -26,6 +27,7 @@ jobs:
       - name: Build and push
         uses: docker/build-push-action@v5
         with:
-          context: ./event_service
+          context: .
+          file: ./event_service/Dockerfile
           push: true
           tags: ${{ secrets.DOCKERHUB_USERNAME }}/event-service:latest

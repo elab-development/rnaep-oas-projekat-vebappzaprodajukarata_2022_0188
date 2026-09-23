@@ -5,6 +5,7 @@ on:
     branches: [main]
     paths:
       - "user-service-py/**"
+      - "shared/**"
 
 jobs:
   build-and-push:
@@ -26,6 +27,7 @@ jobs:
       - name: Build and push
         uses: docker/build-push-action@v5
         with:
-          context: ./user-service-py
+          context: .
+          file: ./user-service-py/Dockerfile
           push: true
           tags: ${{ secrets.DOCKERHUB_USERNAME }}/user-service-py:latest

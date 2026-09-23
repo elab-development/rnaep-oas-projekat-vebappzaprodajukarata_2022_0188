@@ -5,6 +5,7 @@ on:
     branches: [main]
     paths:
       - "ticket-service/**"
+      - "shared/**"
 
 jobs:
   build-and-push:
@@ -26,6 +27,7 @@ jobs:
       - name: Build and push
         uses: docker/build-push-action@v5
         with:
-          context: ./ticket-service
+          context: .
+          file: ./ticket-service/Dockerfile
           push: true
           tags: ${{ secrets.DOCKERHUB_USERNAME }}/ticket-service:latest

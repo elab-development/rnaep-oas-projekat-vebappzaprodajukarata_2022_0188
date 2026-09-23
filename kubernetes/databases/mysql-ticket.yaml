@@ -1,0 +1,61 @@
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: mysql-ticket-pvc
+  namespace: databases
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 1Gi
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: mysql-ticket
+  namespace: databases
+spec:
+  serviceName: mysql-ticket
+  replicas: 1
+  selector:
+    matchLabels:
+      app: mysql-ticket
+  template:
+    metadata:
+      labels:
+        app: mysql-ticket
+    spec:
+      containers:
+        - name: mysql-ticket
+          image: mysql:8.0
+          env:
+            - name: MYSQL_ROOT_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: mysql-secret
+                  key: root-password
+            - name: MYSQL_DATABASE
+              value: ticket_db
+          ports:
+            - containerPort: 3306
+          volumeMounts:
+            - name: mysql-ticket-storage
+              mountPath: /var/lib/mysql
+      volumes:
+        - name: mysql-ticket-storage
+          persistentVolumeClaim:
+            claimName: mysql-ticket-pvc
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: mysql-ticket
+  namespace: databases
+spec:
+  selector:
+    app: mysql-ticket
+  ports:
+    - port: 3306
+      targetPort: 3306
+  type: ClusterIP
