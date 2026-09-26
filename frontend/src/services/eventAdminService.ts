@@ -1,4 +1,4 @@
-const API = "http://localhost:8000/api";
+const API = "http://rnaep.local/api";
 
 export interface Venue {
   id: number;

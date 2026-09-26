@@ -31,7 +31,7 @@ function UserProfilePage() {
       return;
     }
 
-    fetch(`http://localhost:8000/api/users/${userId}`, {
+    fetch(`http://rnaep.local/api/users/${userId}`, {
       headers: {
         Authorization: `Bearer ${token}`,
       },
@@ -74,7 +74,7 @@ function UserProfilePage() {
     }
 
     try {
-      const response = await fetch(`http://localhost:8000/api/users/${userId}`, {
+      const response = await fetch(`http://rnaep.local/api/users/${userId}`, {
         method: "PUT",
         headers: {
           "Content-Type": "application/json",

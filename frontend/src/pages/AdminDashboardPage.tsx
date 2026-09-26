@@ -25,7 +25,7 @@ interface User {
   roles: string[];
 }
 
-const API = "http://localhost:8000/api";
+const API = "http://rnaep.local/api";
 
 function AdminDashboardPage() {
   const navigate = useNavigate();

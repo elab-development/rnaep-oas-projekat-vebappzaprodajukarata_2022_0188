@@ -1,6 +1,6 @@
 import type { Event } from "../types/event_service/Event";
 
-const API_BASE_URL = "http://localhost:8000";
+const API_BASE_URL = "http://rnaep.local";
 
 export async function fetchEvents(): Promise<Event[]> {
   const response = await fetch(`${API_BASE_URL}/api/events/`);

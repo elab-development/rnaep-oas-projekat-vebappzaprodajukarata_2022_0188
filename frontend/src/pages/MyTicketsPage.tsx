@@ -51,7 +51,7 @@ function MyTicketsPage() {
   useEffect(() => {
     async function fetchTickets() {
       try {
-        const response = await fetch("http://localhost:8000/api/tickets/my/tickets", {
+        const response = await fetch("http://rnaep.local/api/tickets/my/tickets", {
           headers: {
             Authorization: `Bearer ${token}`,
           },
@@ -69,7 +69,7 @@ function MyTicketsPage() {
         const eventResults = await Promise.all(
           uniqueEventIds.map(async (eventId) => {
             const eventResponse = await fetch(
-              `http://localhost:8000/api/events/${eventId}`
+              `http://rnaep.local/api/events/${eventId}`
             );
 
             if (!eventResponse.ok) return null;
@@ -169,7 +169,7 @@ function MyTicketsPage() {
   async function cancelReservation(reservationId: number) {
     try {
       const response = await fetch(
-        `http://localhost:8000/api/tickets/reservations/${reservationId}/cancel`,
+        `http://rnaep.local/api/tickets/reservations/${reservationId}/cancel`,
         {
           method: "POST",
           headers: {
@@ -207,7 +207,7 @@ function MyTicketsPage() {
   if (!window.confirm("Da li ste sigurni da želite refundaciju?")) return;
 
   try {
-    const response = await fetch("http://localhost:8000/api/refunds", {
+    const response = await fetch("http://rnaep.local/api/refunds", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",

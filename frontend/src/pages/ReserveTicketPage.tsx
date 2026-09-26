@@ -51,9 +51,9 @@ function ReserveTicketPage() {
     async function fetchData() {
       try {
         const [eventRes, seatsRes, ticketsRes] = await Promise.all([
-          fetch(`http://localhost:8000/api/events/${eventId}`),
-          fetch(`http://localhost:8000/api/tickets/event/${eventId}/seats`),
-          fetch(`http://localhost:8000/api/tickets/event/${eventId}`),
+          fetch(`http://rnaep.local/api/events/${eventId}`),
+          fetch(`http://rnaep.local/api/tickets/event/${eventId}/seats`),
+          fetch(`http://rnaep.local/api/tickets/event/${eventId}`),
         ]);
 
         const eventData = await eventRes.json();
@@ -135,7 +135,7 @@ function ReserveTicketPage() {
     try {
       setReserving(true);
 
-      const response = await fetch("http://localhost:8000/api/tickets/reserve", {
+      const response = await fetch("http://rnaep.local/api/tickets/reserve", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",

@@ -1,7 +1,7 @@
 import type { LoginResponse } from "../types/user_service/Auth"; 
 import type { UserLogin, UserRegister,UserResponse } from "../types/user_service/User";
 
-const API_BASE_URL = "http://localhost:8000";
+const API_BASE_URL = "http://rnaep.local";
 
 export async function login(data: UserLogin): Promise<LoginResponse> {
   const response = await fetch(`${API_BASE_URL}/api/auth/login`, {
