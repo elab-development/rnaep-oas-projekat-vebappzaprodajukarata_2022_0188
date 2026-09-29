@@ -18,6 +18,13 @@ spec:
           image: milicaadrljacaa/ticket-service:latest
           ports:
             - containerPort: 8000
+          resources:
+            requests:
+              cpu: "100m"
+              memory: "128Mi"
+            limits:
+              cpu: "500m"
+              memory: "512Mi"
           env:
             - name: DB_USER
               value: "root"

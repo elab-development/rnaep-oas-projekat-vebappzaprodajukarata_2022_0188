@@ -18,6 +18,13 @@ spec:
           image: milicaadrljacaa/payment-service:latest
           ports:
             - containerPort: 8000
+          resources:
+            requests:
+              cpu: "100m" # minimalno CPU koje Pod treba
+              memory: "128Mi" # minimalno RAM koje Pod treba
+            limits:
+              cpu: "500m" # maksimalno CPU koje Pod može koristiti
+              memory: "512Mi" # maksimalno RAM koje Pod može koristiti
           env:
             - name: DB_USER
               value: "root"
