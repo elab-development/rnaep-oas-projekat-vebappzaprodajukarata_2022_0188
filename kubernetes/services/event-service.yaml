@@ -19,8 +19,19 @@ spec:
           ports:
             - containerPort: 8000
           env:
-            - name: DATABASE_URL
-              value: "mysql+pymysql://root:rootpass@mysql-event.databases.svc.cluster.local:3306/event_db"
+            - name: DB_USER
+              value: "root"
+            - name: DB_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: app-secret
+                  key: db-password
+            - name: DB_HOST
+              value: "mysql-event.databases.svc.cluster.local"
+            - name: DB_PORT
+              value: "3306"
+            - name: DB_DATABASE
+              value: "event_db"
 ---
 apiVersion: v1
 kind: Service

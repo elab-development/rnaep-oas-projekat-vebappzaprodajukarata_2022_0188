@@ -5,10 +5,13 @@ import os
 
 load_dotenv()
 
-DATABASE_URL = os.getenv(
-    "DATABASE_URL",
-    "mysql+pymysql://root:@localhost:3306/ticket_db"
-)
+DB_USER = os.getenv("DB_USER", "root")
+DB_PASSWORD = os.getenv("DB_PASSWORD", "")
+DB_HOST = os.getenv("DB_HOST", "localhost")
+DB_PORT = os.getenv("DB_PORT", "3306")
+DB_DATABASE = os.getenv("DB_DATABASE", "ticket_db")
+
+DATABASE_URL = f"mysql+pymysql://{DB_USER}:{DB_PASSWORD}@{DB_HOST}:{DB_PORT}/{DB_DATABASE}"
 
 engine = create_engine(DATABASE_URL)
 

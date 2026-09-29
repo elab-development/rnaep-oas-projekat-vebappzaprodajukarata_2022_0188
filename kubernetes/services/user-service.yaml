@@ -28,7 +28,10 @@ spec:
             - name: DB_USERNAME
               value: "root"
             - name: DB_PASSWORD
-              value: "rootpass"
+              valueFrom:
+                secretKeyRef:
+                  name: app-secret
+                  key: db-password
             - name: SECRET_KEY
               valueFrom:
                 secretKeyRef:
