@@ -1,0 +1,28 @@
+server:
+  resources:
+    requests:
+      memory: 256Mi
+    limits:
+      memory: 512Mi
+  securityContext:
+    runAsUser: 0
+    runAsNonRoot: false
+  extraScrapeConfigs: |
+    - job_name: 'user-service'
+      static_configs:
+        - targets: ['user-service.app.svc.cluster.local:8000']
+    - job_name: 'event-service'
+      static_configs:
+        - targets: ['event-service.app.svc.cluster.local:8000']
+    - job_name: 'ticket-service'
+      static_configs:
+        - targets: ['ticket-service.app.svc.cluster.local:8000']
+    - job_name: 'payment-service'
+      static_configs:
+        - targets: ['payment-service.app.svc.cluster.local:8000']
+    - job_name: 'notification-service'
+      static_configs:
+        - targets: ['notification-service.app.svc.cluster.local:8000']
+    - job_name: 'api-gateway'
+      static_configs:
+        - targets: ['api-gateway.app.svc.cluster.local:8000']
