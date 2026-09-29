@@ -11,8 +11,7 @@ spec:
       storage: 1Gi
 ---
 apiVersion: apps/v1
-kind: StatefulSet69
-
+kind: StatefulSet
 metadata:
   name: mongodb
   namespace: databases
