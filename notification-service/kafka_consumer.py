@@ -4,6 +4,7 @@ from kafka_producer import send_notification_sent
 from postmark_client import send_ticket_email, send_error_email, send_refund_email
 import json
 from datetime import datetime, UTC
+import os
 
 consumer = None
 
@@ -16,7 +17,7 @@ def get_consumer():
             'payment.completed',
             'payment.failed',
             'payment.refunded',
-            bootstrap_servers='kafka:9092',
+            bootstrap_servers=os.getenv("KAFKA_BOOTSTRAP_SERVERS", "kafka:9092"),
             value_deserializer=lambda v: json.loads(v.decode('utf-8')),
             group_id='notification-group-v3',
             auto_offset_reset='latest'
